@@ -13,7 +13,6 @@ Frappe app to make file upload to S3 through attach file option in doctype.
 
 1. Install boto3 and botocore with requirement.txt
 2.  Setup aws initial configuration in ui from 'S3 Attachmentgit  Settings' Doctype.
-    git
 
 #### License
 
