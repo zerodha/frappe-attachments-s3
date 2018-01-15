@@ -16,7 +16,7 @@ from werkzeug.wrappers import Response
 
 
 class s3Upload(object):
-    
+
     def __init__(self):
         s3_settings_doc = frappe.get_doc('S3 Attachment Settings', 's3')
         self.S3 = boto3.resource('s3')
@@ -49,7 +49,7 @@ class s3Upload(object):
         uploaded = True
         file_extension = file_path.split('.')[-1]
         key = self.key_generator(file_name)
-        if file_extension == "pdf":
+        if file_extension.lower() == "pdf":
             content_type = 'application/pdf'
         else:
             content_type = 'text/plain'
@@ -86,7 +86,7 @@ def file_upload_to_s3(doc, method):
     s3_upload = s3Upload()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
-    if not doc.is_private:    
+    if not doc.is_private:
         file_path = site_path + '/public' + path
     else:
         file_path = site_path + path
