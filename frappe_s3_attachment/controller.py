@@ -18,7 +18,15 @@ from werkzeug.wrappers import Response
 class s3Upload(object):
 
     def __init__(self):
-        s3_settings_doc = frappe.get_doc('S3 Attachment Settings', 's3')
+        s3_settings_doc_name = frappe.db.get_value(
+            'S3 Attachment Settings', 
+            {'bucket': 's3'}
+        )
+        print s3_settings_doc_name, "doc name"
+        s3_settings_doc = frappe.get_doc(
+            'S3 Attachment Settings',
+            s3_settings_doc_name,
+        )
         self.S3 = boto3.resource('s3')
         self.S3_CLIENT = boto3.client(
             's3',
@@ -41,7 +49,7 @@ class s3Upload(object):
             final_key = key + "_" + file_name
         return final_key
 
-    def upload_files_to_s3_with_key(self, file_path, file_name):
+    def upload_files_to_s3_with_key(self, file_path, file_name, is_private):
         """
         Uploads a new file to S3.
         Strips the file extension to set the content_type in metadata.
@@ -54,12 +62,29 @@ class s3Upload(object):
         else:
             content_type = 'text/plain'
         try:
-            self.S3_CLIENT.upload_file(
-                file_path, self.BUCKET, key,
-                ExtraArgs={"Metadata": {
-                    "ContentType": content_type
-                }}
-            )
+            if is_private:
+                self.S3_CLIENT.upload_file(
+                    file_path, self.BUCKET, key,
+                    ExtraArgs={
+                        "ContentType": content_type,
+                        "Metadata": {
+                            "ContentType": content_type
+                        }
+                    }
+                )
+            else:
+                self.S3_CLIENT.upload_file(
+                    file_path, self.BUCKET, key,
+                    ExtraArgs={
+                        "ContentType": content_type,
+                        "ACL": 'public-read',
+                        "Metadata": {
+                            "ContentType": content_type,
+                        
+                        }
+                    }
+                )
+
         except boto3.exceptions.S3UploadFailedError:
             uploaded = False
         return key, uploaded
@@ -91,13 +116,20 @@ def file_upload_to_s3(doc, method):
     else:
         file_path = site_path + path
     key, status = s3_upload.upload_files_to_s3_with_key(
-        file_path, doc.file_name)
+        file_path, doc.file_name, doc.is_private)
     if status:
-        file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
+        if doc.is_private:
+            file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
+        else:
+            file_url = '{}/{}/{}'.format(
+                s3_upload.S3_CLIENT.meta.endpoint_url,
+                s3_upload.BUCKET,
+                key
+            )
         os.remove(file_path)
         doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""", (
-            file_url, 'Home/Attachments', 'Home/Attachments', None, doc.name))
+            file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
         frappe.db.commit()
     else:
         frappe.throw('File upload failed, Please try again.')
