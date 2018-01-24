@@ -18,14 +18,9 @@ from werkzeug.wrappers import Response
 class s3Upload(object):
 
     def __init__(self):
-        s3_settings_doc_name = frappe.db.get_value(
-            'S3 Attachment Settings', 
-            {'bucket': 's3'}
-        )
-        print s3_settings_doc_name, "doc name"
         s3_settings_doc = frappe.get_doc(
-            'S3 Attachment Settings',
-            s3_settings_doc_name,
+            'S3 File Attachment',
+            'S3 File Attachment',
         )
         self.S3 = boto3.resource('s3')
         self.S3_CLIENT = boto3.client(
@@ -80,7 +75,7 @@ class s3Upload(object):
                         "ACL": 'public-read',
                         "Metadata": {
                             "ContentType": content_type,
-                        
+
                         }
                     }
                 )
@@ -153,6 +148,58 @@ def generate_file(key=None):
             frappe.throw('File not found. Please try again.')
     else:
         frappe.throw('File not found. Please try again.')
+
+
+def upload_existing_files_s3(file_name):
+    """
+    Function to upload all existing files.
+    """
+    file_doc_name = frappe.db.get_value('File', {'file_name': file_name})
+    if file_doc_name:
+        doc = frappe.get_doc('File', file_doc_name)
+        s3_upload = s3Upload()
+        path = doc.file_url
+        site_path = frappe.utils.get_site_path()
+        if not doc.is_private:
+            file_path = site_path + '/public' + path
+        else:
+            file_path = site_path + path
+        key, status = s3_upload.upload_files_to_s3_with_key(
+            file_path, doc.file_name, doc.is_private)
+        if status:
+            if doc.is_private:
+                file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
+            else:
+                file_url = '{}/{}/{}'.format(
+                    s3_upload.S3_CLIENT.meta.endpoint_url,
+                    s3_upload.BUCKET,
+                    key
+                )
+            os.remove(file_path)
+            doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
+                old_parent=%s, content_hash=%s WHERE name=%s""", (
+                file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
+            frappe.db.commit()
+    else:
+        pass
+
+
+@frappe.whitelist()
+def migrate_existing_files(user):
+    """
+    Function to migrate the existing files to s3.
+    """
+    # get_all_files_from_public_folder_and_upload_to_s3
+    site_path = frappe.utils.get_site_path()
+    file_path = site_path + '/public/files/'
+    # else:
+    #     file_path = site_path + '/private/files/'
+    for file_name in os.listdir(file_path):
+        upload_existing_files_s3(file_name)
+    file_path = site_path + '/private/files/'
+    for file_name in os.listdir(file_path):
+        upload_existing_files_s3(file_name)
+    return True
 
 
 @frappe.whitelist()
