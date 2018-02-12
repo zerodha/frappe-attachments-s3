@@ -4,6 +4,7 @@ import os
 import random
 import string
 import urllib
+import datetime
 
 import boto3
 import botocore
@@ -38,10 +39,16 @@ class s3Upload(object):
         file_name = file_name.replace(' ', '_')
         key = ''.join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+        
+        today = datetime.datetime.now()
+        year = today.strftime("%Y")
+        month=today.strftime("%m")
+        day=today.strftime("%d")
+
         if self.folder_name:
-            final_key = self.folder_name + "/" + key + "_" + file_name
+            final_key = year + "/" + month + "/" + day + "/" + self.folder_name + "/" + key + "_" + file_name
         else:
-            final_key = key + "_" + file_name
+            final_key = year + "/" + month + "/" + day + "/" + key + "_" + file_name
         return final_key
 
     def upload_files_to_s3_with_key(self, file_path, file_name, is_private):
