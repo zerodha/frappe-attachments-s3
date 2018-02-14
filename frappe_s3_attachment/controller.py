@@ -16,9 +16,13 @@ from werkzeug.wrappers import Response
 # Globals
 
 
-class s3Upload(object):
+class S3Upload(object):
 
     def __init__(self):
+        """
+        Function to initialise the aws settings from frappe S3 File attachment
+        doctype.
+        """
         s3_settings_doc = frappe.get_doc(
             'S3 File Attachment',
             'S3 File Attachment',
@@ -110,7 +114,7 @@ def file_upload_to_s3(doc, method):
     """
     check and upload files to s3. the path check and
     """
-    s3_upload = s3Upload()
+    s3_upload = S3Upload()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
     if not doc.is_private:
@@ -144,7 +148,7 @@ def generate_file(key=None):
     """
     if key:
         response = Response()
-        s3_upload = s3Upload()
+        s3_upload = S3Upload()
         response.headers["Content-Disposition"] = 'inline; filename=%s' % key
         file_obj = s3_upload.read_file_from_s3(key)
         if file_obj:
@@ -164,7 +168,7 @@ def upload_existing_files_s3(file_name):
     file_doc_name = frappe.db.get_value('File', {'file_name': file_name})
     if file_doc_name:
         doc = frappe.get_doc('File', file_doc_name)
-        s3_upload = s3Upload()
+        s3_upload = S3Upload()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
         if not doc.is_private:

@@ -5,10 +5,10 @@ from . import __version__ as app_version
 app_name = "frappe_s3_attachment"
 app_title = "Frappe S3 Attachment"
 app_publisher = "Frappe"
-app_description = "Frappe app to make file upload to through attach file."
+app_description = "Frappe app to make file upload to S3 through attach file option."
 app_icon = "octicon octicon-file-directory"
 app_color = "grey"
-app_email = "info@frappe.io"
+app_email = "ramesh.ravi@zerodha.com"
 app_license = "MIT"
 
 # Includes in <head>
