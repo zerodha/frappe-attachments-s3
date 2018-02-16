@@ -36,7 +36,7 @@ class S3Upload(object):
         self.BUCKET = s3_settings_doc.bucket_name
         self.folder_name = s3_settings_doc.folder_name
 
-    def key_generator(self, file_name):
+    def key_generator(self, file_name, parent_doctype, parent_name):
         """
         Generate keys for s3 objects uploaded with file name attached.
         """
@@ -49,20 +49,33 @@ class S3Upload(object):
         month=today.strftime("%m")
         day=today.strftime("%d")
 
-        if self.folder_name:
-            final_key = year + "/" + month + "/" + day + "/" + self.folder_name + "/" + key + "_" + file_name
+        doc_path = None
+        try:
+            doc_path = frappe.db.get_value(
+                parent_doctype, {'name': parent_name},['s3_folder_path'])
+        except Exception as e:
+            print e
+    
+        if not doc_path: 
+            if self.folder_name:
+                final_key = self.folder_name + "/" + year + "/" + month + "/" + day + "/" + parent_doctype + "/" + key + "_" + file_name
+            else:
+                final_key = year + "/" + month + "/" + day + "/" + parent_doctype + "/" + key + "_" + file_name
+            return final_key
         else:
-            final_key = year + "/" + month + "/" + day + "/" + key + "_" + file_name
-        return final_key
+            final_key = doc_path + '/' + key + "_" + file_name
+            return final_key
+        
 
-    def upload_files_to_s3_with_key(self, file_path, file_name, is_private):
+    def upload_files_to_s3_with_key(
+            self, file_path, file_name, is_private, parent_doctype, parent_name):
         """
         Uploads a new file to S3.
         Strips the file extension to set the content_type in metadata.
         """
         uploaded = True
         file_extension = file_path.split('.')[-1]
-        key = self.key_generator(file_name)
+        key = self.key_generator(file_name, parent_doctype, parent_name)
         if file_extension.lower() == "pdf":
             content_type = 'application/pdf'
         else:
@@ -74,7 +87,8 @@ class S3Upload(object):
                     ExtraArgs={
                         "ContentType": content_type,
                         "Metadata": {
-                            "ContentType": content_type
+                            "ContentType": content_type,
+                            "file_name": file_name
                         }
                     }
                 )
@@ -117,12 +131,14 @@ def file_upload_to_s3(doc, method):
     s3_upload = S3Upload()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
+    parent_doctype = doc.attached_to_doctype
+    parent_name = doc.attached_to_name
     if not doc.is_private:
         file_path = site_path + '/public' + path
     else:
         file_path = site_path + path
     key, status = s3_upload.upload_files_to_s3_with_key(
-        file_path, doc.file_name, doc.is_private)
+        file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
     if status:
         if doc.is_private:
             file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
