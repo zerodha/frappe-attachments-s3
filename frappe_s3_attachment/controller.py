@@ -53,6 +53,7 @@ class S3Upload(object):
         try:
             doc_path = frappe.db.get_value(
                 parent_doctype, {'name': parent_name},['s3_folder_path'])
+            doc_path = doc_path.rstrip('/').lstrip('/')
         except Exception as e:
             print e
     
