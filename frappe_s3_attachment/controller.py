@@ -27,11 +27,12 @@ class S3Upload(object):
             'S3 File Attachment',
             'S3 File Attachment',
         )
-        self.S3 = boto3.resource('s3')
+        self.S3 = boto3.resource('s3', region_name=s3_settings_doc.region_name)
         self.S3_CLIENT = boto3.client(
             's3',
             aws_access_key_id=s3_settings_doc.aws_key,
             aws_secret_access_key=s3_settings_doc.aws_secret,
+            region_name=s3_settings_doc.region_name,
         )
         self.BUCKET = s3_settings_doc.bucket_name
         self.folder_name = s3_settings_doc.folder_name
@@ -43,7 +44,7 @@ class S3Upload(object):
         file_name = file_name.replace(' ', '_')
         key = ''.join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
-        
+
         today = datetime.datetime.now()
         year = today.strftime("%Y")
         month=today.strftime("%m")
@@ -56,8 +57,8 @@ class S3Upload(object):
             doc_path = doc_path.rstrip('/').lstrip('/')
         except Exception as e:
             print e
-    
-        if not doc_path: 
+
+        if not doc_path:
             if self.folder_name:
                 final_key = self.folder_name + "/" + year + "/" + month + "/" + day + "/" + parent_doctype + "/" + key + "_" + file_name
             else:
@@ -66,7 +67,7 @@ class S3Upload(object):
         else:
             final_key = doc_path + '/' + key + "_" + file_name
             return final_key
-        
+
 
     def upload_files_to_s3_with_key(
             self, file_path, file_name, is_private, parent_doctype, parent_name):
