@@ -190,12 +190,14 @@ def upload_existing_files_s3(file_name):
         s3_upload = S3Upload()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
+        parent_doctype = doc.attached_to_doctype
+        parent_name = doc.attached_to_name
         if not doc.is_private:
             file_path = site_path + '/public' + path
         else:
             file_path = site_path + path
         key, status = s3_upload.upload_files_to_s3_with_key(
-            file_path, doc.file_name, doc.is_private)
+            file_path, doc.file_name, doc.is_private, parent_doctype,parent_name)
         if status:
             if doc.is_private:
                 file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
@@ -239,7 +241,7 @@ def migrate_existing_files():
             try:
                 if not s3_file_regex_match(file['file_url']):
                     print file['file_url'], file['file_name']
-                    upload_existing_files_s3(file_name)
+                    upload_existing_files_s3(file['file_name'])
             except Exception as e:
                 print e
     return True
