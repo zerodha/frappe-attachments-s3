@@ -5,6 +5,7 @@ import random
 import string
 import urllib
 import datetime
+import re
 
 import boto3
 import botocore
@@ -213,6 +214,16 @@ def upload_existing_files_s3(file_name):
         pass
 
 
+def s3_file_regex_match(file_url):
+    """
+    Match the public file regex match.
+    """
+
+    return re.match(r'^(https:|/api/method/frappe_s3_attachment.controller.generate_file)', file_url)
+
+
+
+
 @frappe.whitelist()
 def migrate_existing_files():
     """
@@ -221,13 +232,16 @@ def migrate_existing_files():
     # get_all_files_from_public_folder_and_upload_to_s3
     site_path = frappe.utils.get_site_path()
     file_path = site_path + '/public/files/'
-    # else:
-    #     file_path = site_path + '/private/files/'
-    for file_name in os.listdir(file_path):
-        upload_existing_files_s3(file_name)
-    file_path = site_path + '/private/files/'
-    for file_name in os.listdir(file_path):
-        upload_existing_files_s3(file_name)
+
+    files_list = frappe.get_all('File',fields=['file_url','file_name'])
+    for file in files_list:
+        if file['file_url']:
+            try:
+                if not s3_file_regex_match(file['file_url']):
+                    print file_url
+                    # upload_existing_files_s3(file_name)
+            except Exception as e:
+                print e
     return True
 
 
