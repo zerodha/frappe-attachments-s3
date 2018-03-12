@@ -238,7 +238,7 @@ def migrate_existing_files():
         if file['file_url']:
             try:
                 if not s3_file_regex_match(file['file_url']):
-                    print file_url
+                    print file['file_url'], file['file_name']
                     # upload_existing_files_s3(file_name)
             except Exception as e:
                 print e
