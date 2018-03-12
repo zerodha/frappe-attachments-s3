@@ -214,7 +214,7 @@ def upload_existing_files_s3(file_name):
 
 
 @frappe.whitelist()
-def migrate_existing_files(user):
+def migrate_existing_files():
     """
     Function to migrate the existing files to s3.
     """
