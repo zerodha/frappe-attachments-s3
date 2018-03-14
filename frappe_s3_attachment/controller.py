@@ -180,13 +180,13 @@ def generate_file(key=None):
         frappe.throw('File not found. Please try again.')
 
 
-def upload_existing_files_s3(file_name):
+def upload_existing_files_s3(name, file_name):
     """
     Function to upload all existing files.
     """
-    file_doc_name = frappe.db.get_value('File', {'file_name': file_name})
+    file_doc_name = frappe.db.get_value('File', {'name': name})
     if file_doc_name:
-        doc = frappe.get_doc('File', file_doc_name)
+        doc = frappe.get_doc('File', name)
         s3_upload = S3Upload()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
@@ -197,7 +197,7 @@ def upload_existing_files_s3(file_name):
         else:
             file_path = site_path + path
         key, status = s3_upload.upload_files_to_s3_with_key(
-            file_path, doc.file_name, doc.is_private, parent_doctype,parent_name)
+            file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
         if status:
             if doc.is_private:
                 file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
@@ -220,10 +220,7 @@ def s3_file_regex_match(file_url):
     """
     Match the public file regex match.
     """
-
     return re.match(r'^(https:|/api/method/frappe_s3_attachment.controller.generate_file)', file_url)
-
-
 
 
 @frappe.whitelist()
@@ -234,14 +231,13 @@ def migrate_existing_files():
     # get_all_files_from_public_folder_and_upload_to_s3
     site_path = frappe.utils.get_site_path()
     file_path = site_path + '/public/files/'
-
-    files_list = frappe.get_all('File',fields=['file_url','file_name'])
+    files_list = frappe.get_all('File', fields=['name', 'file_url', 'file_name'])
     for file in files_list:
         if file['file_url']:
             try:
                 if not s3_file_regex_match(file['file_url']):
-                    print file['file_url'], file['file_name']
-                    upload_existing_files_s3(file['file_name'])
+                    print file['file_url'], file['file_name'], file['name']
+                    upload_existing_files_s3(file['name'], file['file_name'])
             except Exception as e:
                 print e
     return True
