@@ -81,6 +81,10 @@ class S3Upload(object):
         key = self.key_generator(file_name, parent_doctype, parent_name)
         if file_extension.lower() == "pdf":
             content_type = 'application/pdf'
+        elif file_extension.lower() == 'png':
+            content_type = 'image/png'
+        elif file_extension.lower() == 'jpeg':
+            content_type = 'image/jpeg'
         else:
             content_type = 'text/plain'
         try:
