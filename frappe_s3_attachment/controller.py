@@ -38,37 +38,47 @@ class S3Upload(object):
         self.BUCKET = s3_settings_doc.bucket_name
         self.folder_name = s3_settings_doc.folder_name
 
+    def strip_special_chars(self, file_name):
+        """
+        Strips file charachters which doesnt match the regex.
+        """
+        regex = re.compile('[^0-9a-zA-Z]')
+        file_name = regex.sub('', file_name)
+        return file_name
+
     def key_generator(self, file_name, parent_doctype, parent_name):
         """
         Generate keys for s3 objects uploaded with file name attached.
         """
         file_name = file_name.replace(' ', '_')
+        file_name = self.strip_special_chars(file_name)
         key = ''.join(
             random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
 
         today = datetime.datetime.now()
         year = today.strftime("%Y")
-        month=today.strftime("%m")
-        day=today.strftime("%d")
+        month = today.strftime("%m")
+        day = today.strftime("%d")
 
         doc_path = None
         try:
             doc_path = frappe.db.get_value(
-                parent_doctype, {'name': parent_name},['s3_folder_path'])
+                parent_doctype, {'name': parent_name}, ['s3_folder_path'])
             doc_path = doc_path.rstrip('/').lstrip('/')
         except Exception as e:
             print e
 
         if not doc_path:
             if self.folder_name:
-                final_key = self.folder_name + "/" + year + "/" + month + "/" + day + "/" + parent_doctype + "/" + key + "_" + file_name
+                final_key = self.folder_name + "/" + year + "/" + month + "/" + \
+                    day + "/" + parent_doctype + "/" + key + "_" + file_name
             else:
-                final_key = year + "/" + month + "/" + day + "/" + parent_doctype + "/" + key + "_" + file_name
+                final_key = year + "/" + month + "/" + day + "/" + \
+                    parent_doctype + "/" + key + "_" + file_name
             return final_key
         else:
             final_key = doc_path + '/' + key + "_" + file_name
             return final_key
-
 
     def upload_files_to_s3_with_key(
             self, file_path, file_name, is_private, parent_doctype, parent_name):
@@ -235,7 +245,8 @@ def migrate_existing_files():
     # get_all_files_from_public_folder_and_upload_to_s3
     site_path = frappe.utils.get_site_path()
     file_path = site_path + '/public/files/'
-    files_list = frappe.get_all('File', fields=['name', 'file_url', 'file_name'])
+    files_list = frappe.get_all(
+        'File', fields=['name', 'file_url', 'file_name'])
     for file in files_list:
         if file['file_url']:
             try:
