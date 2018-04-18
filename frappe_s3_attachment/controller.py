@@ -95,6 +95,8 @@ class S3Upload(object):
             content_type = 'image/png'
         elif file_extension.lower() == 'jpeg':
             content_type = 'image/jpeg'
+        elif file_extension.lower() == 'jpg':
+            content_type = 'image/jpeg'
         else:
             content_type = 'text/plain'
         try:
