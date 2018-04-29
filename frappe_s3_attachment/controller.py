@@ -254,6 +254,35 @@ def migrate_existing_files():
     return True
 
 
+
+def delete_from_cloud(doc, method):
+    """Delete file from s3"""
+    from botocore.exceptions import ClientError
+
+    s3_settings_doc = frappe.get_doc(
+            'S3 File Attachment',
+            'S3 File Attachment',
+        )
+
+    S3 = boto3.resource('s3', region_name=s3_settings_doc.region_name)
+    S3_CLIENT = boto3.client(
+        's3',
+        aws_access_key_id=s3_settings_doc.aws_key,
+        aws_secret_access_key=s3_settings_doc.aws_secret,
+        region_name=s3_settings_doc.region_name,
+    )
+    BUCKET = s3_settings_doc.bucket_name
+
+
+    try:
+        S3_CLIENT.delete_object(
+            Bucket=s3_settings_doc.bucket_name,
+            Key=doc.content_hash
+        )
+    except ClientError as e:
+        frappe.throw("Access denied")
+
+
 @frappe.whitelist()
 def ping():
     """
