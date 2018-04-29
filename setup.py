@@ -15,9 +15,9 @@ requirements = parse_requirements("requirements.txt", session="")
 setup(
 	name='frappe_s3_attachment',
 	version=version,
-	description='Frappe app to make file upload to through attach file.',
+	description='Frappe app to make file upload to S3 through attach file option.',
 	author='Frappe',
-	author_email='info@frappe.io',
+	author_email='ramesh.ravi@zerodha.com',
 	packages=find_packages(),
 	zip_safe=False,
 	include_package_data=True,
