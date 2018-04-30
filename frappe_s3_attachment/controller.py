@@ -126,8 +126,7 @@ class S3Upload(object):
         """
         downloaded = True
         try:
-            bucket = self.S3.Bucket(self.BUCKET)
-            file_obj = bucket.Object(key)
+            file_obj = self.S3_CLIENT.get_object(Bucket=self.BUCKET, Key=key)
             return file_obj
         except botocore.exceptions.ClientError:
             downloaded = False
