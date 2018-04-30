@@ -186,6 +186,7 @@ def generate_file(key=None):
             response.data = "File not found."
             return response
     else:
+        response = Response()
         response.data = "Key not found."
         return response
 
