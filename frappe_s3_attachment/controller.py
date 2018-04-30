@@ -186,7 +186,8 @@ def generate_file(key=None):
             response.data = "File not found."
             return response
     else:
-        frappe.throw('File not found. Please try again.')
+        response.data = "Key not found."
+        return response
 
 
 def upload_existing_files_s3(name, file_name):
