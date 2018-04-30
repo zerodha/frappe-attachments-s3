@@ -8,6 +8,7 @@ import datetime
 import re
 
 import boto3
+import magic
 import botocore
 import frappe
 
@@ -87,18 +88,9 @@ class S3Upload(object):
         Strips the file extension to set the content_type in metadata.
         """
         uploaded = True
-        file_extension = file_path.split('.')[-1]
+        mime_type = magic.from_file(file_path, mime=True)
         key = self.key_generator(file_name, parent_doctype, parent_name)
-        if file_extension.lower() == "pdf":
-            content_type = 'application/pdf'
-        elif file_extension.lower() == 'png':
-            content_type = 'image/png'
-        elif file_extension.lower() == 'jpeg':
-            content_type = 'image/jpeg'
-        elif file_extension.lower() == 'jpg':
-            content_type = 'image/jpeg'
-        else:
-            content_type = 'text/plain'
+        content_type = mime_type
         try:
             if is_private:
                 self.S3_CLIENT.upload_file(
@@ -188,7 +180,7 @@ def generate_file(key=None):
         file_obj = s3_upload.read_file_from_s3(key)
         if file_obj:
             response.data = file_obj.get()['Body'].read()
-            response.headers['Content-Type'] = file_obj.metadata['contenttype']
+            response.headers['Content-Type'] = file_obj.content_type
             return response
         else:
             frappe.throw('File not found. Please try again.')
