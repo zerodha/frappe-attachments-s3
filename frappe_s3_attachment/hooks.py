@@ -92,7 +92,8 @@ doctype_list_js = {
 doc_events = {
     "File": {
         "after_insert": "frappe_s3_attachment.controller.file_upload_to_s3",
-    },
+        "on_trash": "frappe_s3_attachment.controller.delete_from_cloud"
+    }
 }
 
 # Scheduled Tasks
