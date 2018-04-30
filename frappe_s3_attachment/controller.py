@@ -178,11 +178,13 @@ def generate_file(key=None):
         response.headers["Content-Disposition"] = 'inline; filename=%s' % key
         file_obj = s3_upload.read_file_from_s3(key)
         if file_obj:
-            response.data = file_obj.get()['Body'].read()
-            response.headers['Content-Type'] = file_obj.content_type
+            print dir(file_obj)
+            response.data = file_obj['Body'].read()
+            response.headers['Content-Type'] = file_obj['ContentType']
             return response
         else:
-            frappe.throw('File not found. Please try again.')
+            response.data = "File not found."
+            return response
     else:
         frappe.throw('File not found. Please try again.')
 
