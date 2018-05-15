@@ -12,32 +12,34 @@ import magic
 import botocore
 import frappe
 
+from botocore.exceptions import ClientError
+
 from werkzeug.wrappers import Response
 
 
 # Globals
 
 
-class S3Upload(object):
+class S3Operations(object):
 
     def __init__(self):
         """
         Function to initialise the aws settings from frappe S3 File attachment
         doctype.
         """
-        s3_settings_doc = frappe.get_doc(
+        self.s3_settings_doc = frappe.get_doc(
             'S3 File Attachment',
             'S3 File Attachment',
         )
-        self.S3 = boto3.resource('s3', region_name=s3_settings_doc.region_name)
+        self.S3 = boto3.resource('s3', region_name=self.s3_settings_doc.region_name)
         self.S3_CLIENT = boto3.client(
             's3',
-            aws_access_key_id=s3_settings_doc.aws_key,
-            aws_secret_access_key=s3_settings_doc.aws_secret,
-            region_name=s3_settings_doc.region_name,
+            aws_access_key_id=self.s3_settings_doc.aws_key,
+            aws_secret_access_key=self.s3_settings_doc.aws_secret,
+            region_name=self.s3_settings_doc.region_name,
         )
-        self.BUCKET = s3_settings_doc.bucket_name
-        self.folder_name = s3_settings_doc.folder_name
+        self.BUCKET = self.s3_settings_doc.bucket_name
+        self.folder_name = self.s3_settings_doc.folder_name
 
     def strip_special_chars(self, file_name):
         """
@@ -120,6 +122,33 @@ class S3Upload(object):
             uploaded = False
         return key, uploaded
 
+
+    def delete_from_s3(self, key):
+        """Delete file from s3"""
+        self.s3_settings_doc = frappe.get_doc(
+            'S3 File Attachment',
+            'S3 File Attachment',
+        )
+
+        if self.s3_settings_doc.delete_file_from_cloud:
+
+            S3 = boto3.resource('s3', region_name=self.s3_settings_doc.region_name)
+            S3_CLIENT = boto3.client(
+                's3',
+                aws_access_key_id=self.s3_settings_doc.aws_key,
+                aws_secret_access_key=self.s3_settings_doc.aws_secret,
+                region_name=self.s3_settings_doc.region_name,
+            )
+
+            try:
+                S3_CLIENT.delete_object(
+                    Bucket=self.s3_settings_doc.bucket_name,
+                    Key=key
+                )
+            except ClientError as e:
+                frappe.throw("Access denied: Could not delete file")
+
+
     def read_file_from_s3(self, key):
         """
         Function to read file from a s3 file.
@@ -138,7 +167,7 @@ def file_upload_to_s3(doc, method):
     """
     check and upload files to s3. the path check and
     """
-    s3_upload = S3Upload()
+    s3_upload = S3Operations()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
     parent_doctype = doc.attached_to_doctype
@@ -174,7 +203,7 @@ def generate_file(key=None):
     """
     if key:
         response = Response()
-        s3_upload = S3Upload()
+        s3_upload = S3Operations()
         response.headers["Content-Disposition"] = 'inline; filename=%s' % key
         file_obj = s3_upload.read_file_from_s3(key)
         if file_obj:
@@ -198,7 +227,7 @@ def upload_existing_files_s3(name, file_name):
     file_doc_name = frappe.db.get_value('File', {'name': name})
     if file_doc_name:
         doc = frappe.get_doc('File', name)
-        s3_upload = S3Upload()
+        s3_upload = S3Operations()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
         parent_doctype = doc.attached_to_doctype
@@ -253,6 +282,15 @@ def migrate_existing_files():
             except Exception as e:
                 print e
     return True
+
+
+
+def delete_from_cloud(doc, method):
+    """Delete file from s3"""
+
+    s3 = S3Operations()
+    s3.delete_from_s3(doc.content_hash)
+
 
 
 @frappe.whitelist()
