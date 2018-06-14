@@ -171,7 +171,7 @@ class S3Operations(object):
         url = self.S3_CLIENT.generate_presigned_url(
             'get_object',
             Params={'Bucket': self.BUCKET, 'Key': key},
-            ExpiresIn=108000
+            ExpiresIn=self.signed_url_expiry_time
         )
 
         return url
