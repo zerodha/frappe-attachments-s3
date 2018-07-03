@@ -31,7 +31,8 @@ class S3Operations(object):
             'S3 File Attachment',
             'S3 File Attachment',
         )
-        self.S3 = boto3.resource('s3', region_name=self.s3_settings_doc.region_name)
+        self.S3 = boto3.resource(
+            's3', region_name=self.s3_settings_doc.region_name)
         self.S3_CLIENT = boto3.client(
             's3',
             aws_access_key_id=self.s3_settings_doc.aws_key,
@@ -122,7 +123,6 @@ class S3Operations(object):
             uploaded = False
         return key, uploaded
 
-
     def delete_from_s3(self, key):
         """Delete file from s3"""
         self.s3_settings_doc = frappe.get_doc(
@@ -132,7 +132,8 @@ class S3Operations(object):
 
         if self.s3_settings_doc.delete_file_from_cloud:
 
-            S3 = boto3.resource('s3', region_name=self.s3_settings_doc.region_name)
+            S3 = boto3.resource(
+                's3', region_name=self.s3_settings_doc.region_name)
             S3_CLIENT = boto3.client(
                 's3',
                 aws_access_key_id=self.s3_settings_doc.aws_key,
@@ -147,7 +148,6 @@ class S3Operations(object):
                 )
             except ClientError as e:
                 frappe.throw("Access denied: Could not delete file")
-
 
     def read_file_from_s3(self, key):
         """
@@ -172,28 +172,29 @@ def file_upload_to_s3(doc, method):
     site_path = frappe.utils.get_site_path()
     parent_doctype = doc.attached_to_doctype
     parent_name = doc.attached_to_name
-    if not doc.is_private:
-        file_path = site_path + '/public' + path
-    else:
-        file_path = site_path + path
-    key, status = s3_upload.upload_files_to_s3_with_key(
-        file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
-    if status:
-        if doc.is_private:
-            file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
+    if parent_doctype != "Data Import":
+        if not doc.is_private:
+            file_path = site_path + '/public' + path
         else:
-            file_url = '{}/{}/{}'.format(
-                s3_upload.S3_CLIENT.meta.endpoint_url,
-                s3_upload.BUCKET,
-                key
-            )
-        # os.remove(file_path)
-        doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
-            old_parent=%s, content_hash=%s WHERE name=%s""", (
-            file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
-        frappe.db.commit()
-    else:
-        frappe.throw('File upload failed, Please try again.')
+            file_path = site_path + path
+        key, status = s3_upload.upload_files_to_s3_with_key(
+            file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
+        if status:
+            if doc.is_private:
+                file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
+            else:
+                file_url = '{}/{}/{}'.format(
+                    s3_upload.S3_CLIENT.meta.endpoint_url,
+                    s3_upload.BUCKET,
+                    key
+                )
+            # os.remove(file_path)
+            doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
+                old_parent=%s, content_hash=%s WHERE name=%s""", (
+                file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
+            frappe.db.commit()
+        else:
+            frappe.throw('File upload failed, Please try again.')
 
 
 @frappe.whitelist()
@@ -284,13 +285,11 @@ def migrate_existing_files():
     return True
 
 
-
 def delete_from_cloud(doc, method):
     """Delete file from s3"""
 
     s3 = S3Operations()
     s3.delete_from_s3(doc.content_hash)
-
 
 
 @frappe.whitelist()
