@@ -161,6 +161,21 @@ class S3Operations(object):
             downloaded = False
         return downloaded
 
+    def get_url(self, key):
+        """
+        Return url.
+
+        :param bucket: s3 bucket name
+        :param key: s3 object key
+        """
+        url = self.S3_CLIENT.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': self.BUCKET, 'Key': key},
+            ExpiresIn=self.signed_url_expiry_time
+        )
+
+        return url
+
 
 @frappe.whitelist()
 def file_upload_to_s3(doc, method):
@@ -203,23 +218,15 @@ def generate_file(key=None):
     Function to stream file from s3.
     """
     if key:
-        response = Response()
         s3_upload = S3Operations()
-        response.headers["Content-Disposition"] = 'inline; filename=%s' % key
-        file_obj = s3_upload.read_file_from_s3(key)
-        if file_obj:
-            print dir(file_obj)
-            response.data = file_obj['Body'].read()
-            response.headers['Content-Type'] = file_obj['ContentType']
-            return response
-        else:
-            response.data = "File not found."
-            return response
+        signed_url = s3_upload.get_url(key)
+        frappe.local.response["type"] = "redirect"
+        frappe.local.response["location"] = signed_url
     else:
-        response = Response()
-        response.data = "Key not found."
-        return response
+        
+        frappe.local.response['body']= "Key not found."
 
+    return
 
 def upload_existing_files_s3(name, file_name):
     """
