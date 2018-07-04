@@ -168,6 +168,11 @@ class S3Operations(object):
         :param bucket: s3 bucket name
         :param key: s3 object key
         """
+        if self.s3_settings_doc.signed_url_expiry_time:
+            self.signed_url_expiry_time = self.s3_settings_doc.signed_url_expiry_time
+        else:
+            self.signed_url_expiry_time = 120
+
         url = self.S3_CLIENT.generate_presigned_url(
             'get_object',
             Params={'Bucket': self.BUCKET, 'Key': key},
