@@ -208,7 +208,7 @@ def file_upload_to_s3(doc, method):
                     s3_upload.BUCKET,
                     key
                 )
-            # os.remove(file_path)
+            os.remove(file_path)
             doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
                 old_parent=%s, content_hash=%s WHERE name=%s""", (
                 file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
@@ -260,7 +260,7 @@ def upload_existing_files_s3(name, file_name):
                     s3_upload.BUCKET,
                     key
                 )
-            # os.remove(file_path)
+            os.remove(file_path)
             doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
                 old_parent=%s, content_hash=%s WHERE name=%s""", (
                 file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
