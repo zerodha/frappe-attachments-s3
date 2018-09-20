@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
-from pip.req import parse_requirements
+try: # for pip >= 10
+    from pip._internal.req import parse_requirements
+except ImportError: # for pip <= 9.0.3
+    from pip.req import parse_requirements
 import re, ast
 
 # get version from __version__ variable in frappe_s3_attachment/__init__.py
