@@ -1,9 +1,7 @@
 from __future__ import unicode_literals
 
-import os
 import random
 import string
-import urllib
 import datetime
 import re
 
@@ -13,11 +11,6 @@ import botocore
 import frappe
 
 from botocore.exceptions import ClientError
-
-from werkzeug.wrappers import Response
-
-
-# Globals
 
 
 class S3Operations(object):
@@ -46,7 +39,7 @@ class S3Operations(object):
         """
         Strips file charachters which doesnt match the regex.
         """
-        regex = re.compile('[^0-9a-zA-Z]')
+        regex = re.compile('[^0-9a-zA-Z._-]')
         file_name = regex.sub('', file_name)
         return file_name
 
@@ -131,9 +124,6 @@ class S3Operations(object):
         )
 
         if self.s3_settings_doc.delete_file_from_cloud:
-
-            S3 = boto3.resource(
-                's3', region_name=self.s3_settings_doc.region_name)
             S3_CLIENT = boto3.client(
                 's3',
                 aws_access_key_id=self.s3_settings_doc.aws_key,
@@ -146,8 +136,8 @@ class S3Operations(object):
                     Bucket=self.s3_settings_doc.bucket_name,
                     Key=key
                 )
-            except ClientError as e:
-                frappe.throw("Access denied: Could not delete file")
+            except ClientError:
+                frappe.throw(frappe._("Access denied: Could not delete file"))
 
     def read_file_from_s3(self, key):
         """
@@ -201,7 +191,9 @@ def file_upload_to_s3(doc, method):
             file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
         if status:
             if doc.is_private:
-                file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
+                file_url = """
+                    /api/method/frappe_si3_attachment.controller.generate_file?key={0}
+                """.format(key)
             else:
                 file_url = '{}/{}/{}'.format(
                     s3_upload.S3_CLIENT.meta.endpoint_url,
@@ -228,10 +220,11 @@ def generate_file(key=None):
         frappe.local.response["type"] = "redirect"
         frappe.local.response["location"] = signed_url
     else:
-        
-        frappe.local.response['body']= "Key not found."
+
+        frappe.local.response['body'] = "Key not found."
 
     return
+
 
 def upload_existing_files_s3(name, file_name):
     """
@@ -253,7 +246,9 @@ def upload_existing_files_s3(name, file_name):
             file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
         if status:
             if doc.is_private:
-                file_url = "/api/method/frappe_s3_attachment.controller.generate_file?key=%s" % key
+                file_url = """
+                    /api/method/frappe_s3_attachment.controller.generate_file?key={0}
+                """.format(key)
             else:
                 file_url = '{}/{}/{}'.format(
                     s3_upload.S3_CLIENT.meta.endpoint_url,
@@ -273,7 +268,9 @@ def s3_file_regex_match(file_url):
     """
     Match the public file regex match.
     """
-    return re.match(r'^(https:|/api/method/frappe_s3_attachment.controller.generate_file)', file_url)
+    return re.match(
+        r'^(https:|/api/method/frappe_s3_attachment.controller.generate_file)', file_url
+    )
 
 
 @frappe.whitelist()
@@ -282,24 +279,19 @@ def migrate_existing_files():
     Function to migrate the existing files to s3.
     """
     # get_all_files_from_public_folder_and_upload_to_s3
-    site_path = frappe.utils.get_site_path()
-    file_path = site_path + '/public/files/'
     files_list = frappe.get_all(
-        'File', fields=['name', 'file_url', 'file_name'])
+        'File',
+        fields=['name', 'file_url', 'file_name']
+    )
     for file in files_list:
         if file['file_url']:
-            try:
-                if not s3_file_regex_match(file['file_url']):
-                    print file['file_url'], file['file_name'], file['name']
-                    upload_existing_files_s3(file['name'], file['file_name'])
-            except Exception as e:
-                print e
+            if not s3_file_regex_match(file['file_url']):
+                upload_existing_files_s3(file['name'], file['file_name'])
     return True
 
 
 def delete_from_cloud(doc, method):
     """Delete file from s3"""
-
     s3 = S3Operations()
     s3.delete_from_s3(doc.content_hash)
 
