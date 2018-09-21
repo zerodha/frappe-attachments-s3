@@ -61,10 +61,13 @@ class S3Operations(object):
         doc_path = None
         try:
             doc_path = frappe.db.get_value(
-                parent_doctype, {'name': parent_name}, ['s3_folder_path'])
+                parent_doctype,
+                filters={'name': parent_name},
+                fieldname=['s3_folder_path']
+            )
             doc_path = doc_path.rstrip('/').lstrip('/')
         except Exception as e:
-            print e
+            print(e)
 
         if not doc_path:
             if self.folder_name:
@@ -192,9 +195,8 @@ def file_upload_to_s3(doc, method):
             file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
         if status:
             if doc.is_private:
-                file_url = """
-                    /api/method/frappe_si3_attachment.controller.generate_file?key={0}
-                """.format(key)
+                method = "frappe_s3_attachment.controller.generate_file"
+                file_url = """/api/method/{0}?key={1}""".format(method, key)
             else:
                 file_url = '{}/{}/{}'.format(
                     s3_upload.S3_CLIENT.meta.endpoint_url,
@@ -221,9 +223,7 @@ def generate_file(key=None):
         frappe.local.response["type"] = "redirect"
         frappe.local.response["location"] = signed_url
     else:
-
         frappe.local.response['body'] = "Key not found."
-
     return
 
 
@@ -247,9 +247,8 @@ def upload_existing_files_s3(name, file_name):
             file_path, doc.file_name, doc.is_private, parent_doctype, parent_name)
         if status:
             if doc.is_private:
-                file_url = """
-                    /api/method/frappe_s3_attachment.controller.generate_file?key={0}
-                """.format(key)
+                method = "frappe_s3_attachment.controller.generate_file"
+                file_url = """/api/method/{0}?key={1}""".format(method, key)
             else:
                 file_url = '{}/{}/{}'.format(
                     s3_upload.S3_CLIENT.meta.endpoint_url,
