@@ -24,5 +24,5 @@ setup(
     zip_safe=False,
     include_package_data=True,
     install_requires=install_requires,
-    dependency_links=[str(ir._link) for ir in install_requires if ir._link]
+    dependency_links=[]
 )
