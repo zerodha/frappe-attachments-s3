@@ -148,7 +148,7 @@ class S3Operations(object):
         """
         return self.S3_CLIENT.get_object(Bucket=self.BUCKET, Key=key)
 
-    def get_url(self, key):
+    def get_url(self, key, file_name=None):
         """
         Return url.
 
@@ -159,11 +159,18 @@ class S3Operations(object):
             self.signed_url_expiry_time = self.s3_settings_doc.signed_url_expiry_time
         else:
             self.signed_url_expiry_time = 120
+        params = {
+                'Bucket': self.BUCKET,
+                'Key': key,
+
+        }
+        if file_name:
+            params['ResponseContentDisposition'] = 'filename={}'.format(file_name)
 
         url = self.S3_CLIENT.generate_presigned_url(
             'get_object',
-            Params={'Bucket': self.BUCKET, 'Key': key},
-            ExpiresIn=self.signed_url_expiry_time
+            Params=params,
+            ExpiresIn=self.signed_url_expiry_time,
         )
 
         return url
@@ -190,7 +197,7 @@ def file_upload_to_s3(doc, method):
 
         if doc.is_private:
             method = "frappe_s3_attachment.controller.generate_file"
-            file_url = """/api/method/{0}?key={1}""".format(method, key)
+            file_url = """/api/method/{0}?key={1}&file_name={2}""".format(method, key, doc.file_name)
         else:
             file_url = '{}/{}/{}'.format(
                 s3_upload.S3_CLIENT.meta.endpoint_url,
@@ -205,13 +212,13 @@ def file_upload_to_s3(doc, method):
 
 
 @frappe.whitelist()
-def generate_file(key=None):
+def generate_file(key=None, file_name=None):
     """
     Function to stream file from s3.
     """
     if key:
         s3_upload = S3Operations()
-        signed_url = s3_upload.get_url(key)
+        signed_url = s3_upload.get_url(key, file_name)
         frappe.local.response["type"] = "redirect"
         frappe.local.response["location"] = signed_url
     else:
