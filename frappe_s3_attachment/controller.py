@@ -47,7 +47,7 @@ class S3Operations(object):
     def key_generator(self, file_name, parent_doctype, parent_name):
         """
         Generate keys for s3 objects uploaded with file name attached.
-        """
+        """ 
         file_name = file_name.replace(' ', '_')
         file_name = self.strip_special_chars(file_name)
         key = ''.join(
@@ -57,7 +57,6 @@ class S3Operations(object):
         year = today.strftime("%Y")
         month = today.strftime("%m")
         day = today.strftime("%d")
-
         doc_path = None
         try:
             doc_path = frappe.db.get_value(
@@ -71,8 +70,12 @@ class S3Operations(object):
 
         if not doc_path:
             if self.folder_name:
-                final_key = self.folder_name + "/" + year + "/" + month + "/" + \
+                if parent_doctype:
+                    final_key = self.folder_name + "/" + year + "/" + month + "/" + \
                     day + "/" + parent_doctype + "/" + key + "_" + file_name
+                else:
+                    final_key = self.folder_name + "/" + year + "/" + month + "/" + \
+                    day + "/" + key + "_" + file_name   
             else:
                 final_key = year + "/" + month + "/" + day + "/" + \
                     parent_doctype + "/" + key + "_" + file_name
@@ -165,7 +168,6 @@ class S3Operations(object):
             Params={'Bucket': self.BUCKET, 'Key': key},
             ExpiresIn=self.signed_url_expiry_time
         )
-
         return url
 
 
