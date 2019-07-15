@@ -8,7 +8,6 @@ import os
 
 import boto3
 import magic
-import botocore
 import frappe
 
 from botocore.exceptions import ClientError
