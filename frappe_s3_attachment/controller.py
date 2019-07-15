@@ -25,14 +25,18 @@ class S3Operations(object):
             'S3 File Attachment',
             'S3 File Attachment',
         )
-        self.S3 = boto3.resource(
-            's3', region_name=self.s3_settings_doc.region_name)
-        self.S3_CLIENT = boto3.client(
-            's3',
-            aws_access_key_id=self.s3_settings_doc.aws_key,
-            aws_secret_access_key=self.s3_settings_doc.aws_secret,
-            region_name=self.s3_settings_doc.region_name,
-        )
+        if (
+            self.s3_settings_doc.aws_key and
+            self.s3_settings_doc.aws_secret
+        ):
+            self.S3_CLIENT = boto3.client(
+                's3',
+                aws_access_key_id=self.s3_settings_doc.aws_key,
+                aws_secret_access_key=self.s3_settings_doc.aws_secret,
+                region_name=self.s3_settings_doc.region_name,
+            )
+        else:
+            self.S3_CLIENT = boto3.client('s3')
         self.BUCKET = self.s3_settings_doc.bucket_name
         self.folder_name = self.s3_settings_doc.folder_name
 
@@ -51,7 +55,9 @@ class S3Operations(object):
         file_name = file_name.replace(' ', '_')
         file_name = self.strip_special_chars(file_name)
         key = ''.join(
-            random.choice(string.ascii_uppercase + string.digits) for _ in range(8))
+            random.choice(
+                string.ascii_uppercase + string.digits) for _ in range(8)
+        )
 
         today = datetime.datetime.now()
         year = today.strftime("%Y")
@@ -71,8 +77,9 @@ class S3Operations(object):
 
         if not doc_path:
             if self.folder_name:
-                final_key = self.folder_name + "/" + year + "/" + month + "/" + \
-                    day + "/" + parent_doctype + "/" + key + "_" + file_name
+                final_key = self.folder_name + "/" + year + "/" + month + \
+                    "/" + day + "/" + parent_doctype + "/" + key + "_" + \
+                    file_name
             else:
                 final_key = year + "/" + month + "/" + day + "/" + \
                     parent_doctype + "/" + key + "_" + file_name
@@ -82,7 +89,8 @@ class S3Operations(object):
             return final_key
 
     def upload_files_to_s3_with_key(
-            self, file_path, file_name, is_private, parent_doctype, parent_name):
+            self, file_path, file_name, is_private, parent_doctype, parent_name
+    ):
         """
         Uploads a new file to S3.
         Strips the file extension to set the content_type in metadata.
@@ -156,7 +164,7 @@ class S3Operations(object):
         :param key: s3 object key
         """
         if self.s3_settings_doc.signed_url_expiry_time:
-            self.signed_url_expiry_time = self.s3_settings_doc.signed_url_expiry_time
+            self.signed_url_expiry_time = self.s3_settings_doc.signed_url_expiry_time # noqa
         else:
             self.signed_url_expiry_time = 120
 
@@ -185,7 +193,9 @@ def file_upload_to_s3(doc, method):
         else:
             file_path = site_path + path
         key = s3_upload.upload_files_to_s3_with_key(
-            file_path, doc.file_name, doc.is_private, parent_doctype, parent_name
+            file_path, doc.file_name,
+            doc.is_private, parent_doctype,
+            parent_name
         )
 
         if doc.is_private:
@@ -236,7 +246,9 @@ def upload_existing_files_s3(name, file_name):
         else:
             file_path = site_path + path
         key = s3_upload.upload_files_to_s3_with_key(
-            file_path, doc.file_name, doc.is_private, parent_doctype, parent_name
+            file_path, doc.file_name,
+            doc.is_private, parent_doctype,
+            parent_name
         )
 
         if doc.is_private:
@@ -262,7 +274,8 @@ def s3_file_regex_match(file_url):
     Match the public file regex match.
     """
     return re.match(
-        r'^(https:|/api/method/frappe_s3_attachment.controller.generate_file)', file_url
+        r'^(https:|/api/method/frappe_s3_attachment.controller.generate_file)',
+        file_url
     )
 
 
