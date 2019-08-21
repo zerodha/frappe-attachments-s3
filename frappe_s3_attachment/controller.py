@@ -183,6 +183,8 @@ def file_upload_to_s3(doc, method):
     """
     s3_upload = S3Operations()
     path = doc.file_url
+    if path.startswith('https://s3.amazonaws.com/') or path.startswith('/api/method/frappe_s3_attachment.controller.generate_file?'):
+        return
     site_path = frappe.utils.get_site_path()
     parent_doctype = doc.attached_to_doctype
     parent_name = doc.attached_to_name
@@ -298,7 +300,8 @@ def migrate_existing_files():
 def delete_from_cloud(doc, method):
     """Delete file from s3"""
     s3 = S3Operations()
-    s3.delete_from_s3(doc.content_hash)
+    if doc.content_hash:
+        s3.delete_from_s3(doc.content_hash)
 
 
 @frappe.whitelist()
