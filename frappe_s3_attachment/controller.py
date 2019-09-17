@@ -64,6 +64,8 @@ class S3Operations(object):
         day = today.strftime("%d")
 
         doc_path = None
+        print('parent_doctype: ', parent_doctype)
+        print('parent_name: ', parent_name)
         try:
             doc_path = frappe.db.get_value(
                 parent_doctype,
@@ -73,7 +75,7 @@ class S3Operations(object):
             doc_path = doc_path.rstrip('/').lstrip('/')
         except Exception as e:
             print(e)
-
+        print('no docpath')
         if not doc_path:
             if self.folder_name:
                 final_key = self.folder_name + "/" + year + "/" + month + \
@@ -82,6 +84,7 @@ class S3Operations(object):
             else:
                 final_key = year + "/" + month + "/" + day + "/" + \
                     parent_doctype + "/" + key + "_" + file_name
+            print('final key: ', final_key)
             return final_key
         else:
             final_key = doc_path + '/' + key + "_" + file_name
@@ -99,6 +102,7 @@ class S3Operations(object):
         content_type = mime_type
         try:
             if is_private:
+                print("private file_path, self.BUCKET, key", file_path, self.BUCKET, key)
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
                     ExtraArgs={
@@ -110,6 +114,7 @@ class S3Operations(object):
                     }
                 )
             else:
+                print("file_path, self.BUCKET, key", file_path, self.BUCKET, key)
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
                     ExtraArgs={
@@ -208,11 +213,13 @@ def file_upload_to_s3(doc, method):
                 s3_upload.BUCKET,
                 key
             )
+            print('file url: ', file_url, ' file_path: ', file_path)
         os.remove(file_path)
         doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""", (
             file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
         frappe.db.commit()
+        print('commit...')
 
 
 @frappe.whitelist()
