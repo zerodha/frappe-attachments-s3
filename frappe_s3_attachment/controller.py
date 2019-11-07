@@ -1,16 +1,20 @@
 from __future__ import unicode_literals
 
-import random
-import string
 import datetime
-import re
 import os
+import random
+import re
+import string
 
 import boto3
-import magic
+
+from botocore.client import Config
+from botocore.exceptions import ClientError
+
 import frappe
 
-from botocore.exceptions import ClientError
+
+import magic
 
 
 class S3Operations(object):
@@ -33,9 +37,10 @@ class S3Operations(object):
                 aws_access_key_id=self.s3_settings_doc.aws_key,
                 aws_secret_access_key=self.s3_settings_doc.aws_secret,
                 region_name=self.s3_settings_doc.region_name,
+                config=Config(signature_version='s3v4')
             )
         else:
-            self.S3_CLIENT = boto3.client('s3')
+            self.S3_CLIENT = boto3.client('s3', config=Config(signature_version='s3v4'))
         self.BUCKET = self.s3_settings_doc.bucket_name
         self.folder_name = self.s3_settings_doc.folder_name
 
