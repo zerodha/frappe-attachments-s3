@@ -40,7 +40,11 @@ class S3Operations(object):
                 config=Config(signature_version='s3v4')
             )
         else:
-            self.S3_CLIENT = boto3.client('s3', config=Config(signature_version='s3v4'))
+            self.S3_CLIENT = boto3.client(
+                's3',
+                region_name=self.s3_settings_doc.region_name,
+                config=Config(signature_version='s3v4')
+            )
         self.BUCKET = self.s3_settings_doc.bucket_name
         self.folder_name = self.s3_settings_doc.folder_name
 
@@ -139,15 +143,16 @@ class S3Operations(object):
         )
 
         if self.s3_settings_doc.delete_file_from_cloud:
-            S3_CLIENT = boto3.client(
+            s3_client = boto3.client(
                 's3',
                 aws_access_key_id=self.s3_settings_doc.aws_key,
                 aws_secret_access_key=self.s3_settings_doc.aws_secret,
                 region_name=self.s3_settings_doc.region_name,
+                config=Config(signature_version='s3v4')
             )
 
             try:
-                S3_CLIENT.delete_object(
+                s3_client.delete_object(
                     Bucket=self.s3_settings_doc.bucket_name,
                     Key=key
                 )
