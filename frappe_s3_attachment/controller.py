@@ -43,7 +43,8 @@ class S3Operations(object):
             self.S3_CLIENT = boto3.client(
                 's3',
                 region_name=self.s3_settings_doc.region_name,
-                config=Config(signature_version='s3v4')
+                config=Config(signature_version='s3v4'),
+                region_name=self.s3_settings_doc.region_name
             )
         self.BUCKET = self.s3_settings_doc.bucket_name
         self.folder_name = self.s3_settings_doc.folder_name
