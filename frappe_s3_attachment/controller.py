@@ -311,3 +311,21 @@ def ping():
     Test function to check if api function work.
     """
     return "pong"
+
+def read_from_s3(fname, file_path):
+    file_details = frappe.db.sql(
+        """select file_name, file_url, content_hash, is_private from `tabFile` where name=%s or file_name=%s""",
+        (fname, fname), as_dict=1)
+    if file_details:
+        file_details = file_details[0]
+        s3_upload = S3Operations()
+        if file_details.is_private:
+            file_path = file_path.replace(
+                '/api/method/frappe_s3_attachment.controller.generate_file?key=', '')
+            return [file_details.file_name,
+                    s3_upload.read_file_from_s3(file_path).get("Body").read()]
+        else:
+            return [file_details.file_name,
+                    s3_upload.read_file_from_s3(file_details.content_hash).get("Body").read()]
+    else:
+        frappe.throw("File not found")
