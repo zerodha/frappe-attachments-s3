@@ -96,6 +96,8 @@ doc_events = {
     }
 }
 
+read_from_s3 = "frappe_s3_attachment.controller.read_from_s3"
+
 # Scheduled Tasks
 # ---------------
 
