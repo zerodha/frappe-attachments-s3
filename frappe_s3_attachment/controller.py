@@ -73,15 +73,6 @@ class S3Operations(object):
         day = today.strftime("%d")
 
         doc_path = None
-        try:
-            doc_path = frappe.db.get_value(
-                parent_doctype,
-                filters={'name': parent_name},
-                fieldname=['s3_folder_path']
-            )
-            doc_path = doc_path.rstrip('/').lstrip('/')
-        except Exception as e:
-            print(e)
 
         if not doc_path:
             if self.folder_name:
