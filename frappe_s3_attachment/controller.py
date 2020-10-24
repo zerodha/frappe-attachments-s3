@@ -51,6 +51,19 @@ class S3Operations(object):
         """
         Generate keys for s3 objects uploaded with file name attached.
         """
+        hook_cmd = frappe.get_hooks().get("zerodha_s3_key_generator")
+        if hook_cmd:
+            try:
+                k = frappe.get_attr(hook_cmd[0])(
+                    file_name=file_name,
+                    parent_doctype=parent_doctype,
+                    parent_name=parent_name
+                )
+                if k:
+                    return k.rstrip('/').lstrip('/')
+            except:
+                pass
+
         file_name = file_name.replace(' ', '_')
         file_name = self.strip_special_chars(file_name)
         key = ''.join(
