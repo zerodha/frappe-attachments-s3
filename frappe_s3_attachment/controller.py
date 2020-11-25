@@ -289,6 +289,7 @@ def migrate_existing_files():
     # get_all_files_from_public_folder_and_upload_to_s3
     files_list = frappe.get_all(
         'File',
+        filters=[['attached_to_doctype'], 'not in', ["Data Import", "Prepared Report"]],
         fields=['name', 'file_url', 'file_name']
     )
     for file in files_list:
