@@ -287,11 +287,9 @@ def migrate_existing_files():
     Function to migrate the existing files to s3.
     """
     # get_all_files_from_public_folder_and_upload_to_s3
-    files_list = frappe.get_all(
-        'File',
-        filters=['attached_to_doctype', 'not in', ["Data Import", "Prepared Report"]],
-        fields=['name', 'file_url', 'file_name']
-    )
+    files_list = frappe.db.get_all('File',
+                                   filters={'attached_to_doctype': ['not in', ["Data Import", "Prepared Report"]]},
+                                   fields=['name', 'file_url', 'file_name'])
     for file in files_list:
         if file['file_url']:
             if not s3_file_regex_match(file['file_url']):
