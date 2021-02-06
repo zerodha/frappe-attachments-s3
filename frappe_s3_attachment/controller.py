@@ -77,9 +77,14 @@ class S3Operations(object):
 
         if not doc_path:
             if self.folder_name:
-                final_key = self.folder_name + "/" + year + "/" + month + \
-                    "/" + day + "/" + parent_doctype + "/" + key + "_" + \
-                    file_name
+                if parent_doctype:
+                    final_key = self.folder_name + "/" + year + "/" + month + \
+                        "/" + day + "/" + parent_doctype + "/" + key + "_" + \
+                        file_name
+                else:
+                    final_key = self.folder_name + "/" + year + "/" + month + \
+                                "/" + day + "/" + key + "_" + \
+                                file_name
             else:
                 final_key = year + "/" + month + "/" + day + "/" + \
                     parent_doctype + "/" + key + "_" + file_name
