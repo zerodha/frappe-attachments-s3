@@ -36,8 +36,16 @@ class S3Operations(object):
             )
         else:
             self.S3_CLIENT = boto3.client('s3')
-        self.BUCKET = self.s3_settings_doc.bucket_name
+
         self.folder_name = self.s3_settings_doc.folder_name
+        self.BUCKET = self.s3_settings_doc.bucket_name
+        self.PUBLIC_BUCKET = self.s3_settings_doc.public_bucket_name
+        # Doctypes which can have public file uploads.
+        # Format: {<doctype name>: <string to be used to prepend the aws key>}
+        self.DOCTYPES_WITH_PUBLIC_ACCESS = [
+            {doctype.doctype_name: doctype.prepend_s3_key_with}
+            for doctype in self.s3_settings_doc.public_doctype_details
+        ]
 
     def strip_special_chars(self, file_name):
         """
@@ -107,10 +115,10 @@ class S3Operations(object):
         Uploads a new file to S3.
         Strips the file extension to set the content_type in metadata.
         """
-        mime_type = magic.from_file(file_path, mime=True)
-        key = self.key_generator(file_name, parent_doctype, parent_name)
-        content_type = mime_type
         try:
+            mime_type = magic.from_file(file_path, mime=True)
+            key = self.key_generator(file_name, parent_doctype, parent_name)
+            content_type = mime_type
             if is_private:
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
@@ -123,6 +131,11 @@ class S3Operations(object):
                     }
                 )
             else:
+                key_prepend_with = self.DOCTYPES_WITH_PUBLIC_ACCESS.get(parent_doctype, "")
+                if key_prepend_with and not key_prepend_with.endswith("/"):
+                    key_prepend_with += "/"
+                key = key_prepend_with + key
+
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
                     ExtraArgs={
@@ -207,9 +220,20 @@ def file_upload_to_s3(doc, method):
     parent_doctype = doc.attached_to_doctype
     parent_name = doc.attached_to_name
     ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
+
     if parent_doctype not in ignore_s3_upload_for_doctype:
         if not doc.is_private:
             file_path = site_path + '/public' + path
+
+            if parent_doctype not in s3_upload.DOCTYPES_WITH_PUBLIC_ACCESS and not doc.is_private:
+                # If a doctype is not allowed (or not declared) to have public files,
+                # remove the file path and throw an error.
+                try:
+                    os.remove(file_path)
+                except OSError:
+                    pass
+                frappe.throw("Not allowed to upload the file with public access. Make the file as private and retry.")
+
         else:
             file_path = site_path + path
         key = s3_upload.upload_files_to_s3_with_key(
@@ -224,7 +248,7 @@ def file_upload_to_s3(doc, method):
         else:
             file_url = '{}/{}/{}'.format(
                 s3_upload.S3_CLIENT.meta.endpoint_url,
-                s3_upload.BUCKET,
+                s3_upload.PUBLIC_BUCKET,
                 key
             )
         os.remove(file_path)
