@@ -1,2 +1,2 @@
-boto3~=1.17.53
+boto3==1.10.18
 python-magic==0.4.18
