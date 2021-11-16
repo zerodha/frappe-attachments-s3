@@ -60,7 +60,7 @@ Frappe app to make file upload automatically upload and read from s3.
             "Resource": "arn:aws:s3:::<BUCKET_NAME>/*",
             "Condition": {
                 "StringEquals": {
-                    "s3:x-amz-acl": "<CONDITION_VALUE>"
+                    "s3:x-amz-acl": "public-read"
                 }
             }
         }
