@@ -17,9 +17,9 @@ with open('frappe_s3_attachment/__init__.py', 'rb') as f:
 setup(
     name='frappe_s3_attachment',
     version=version,
-    description='Frappe app to make file upload to S3 through attach file option.',
+    description='Frappe app to make file upload to Spaces through attach file option.',
     author='Frappe',
-    author_email='ramesh.ravi@zerodha.com',
+    author_email='sameer@extensioncrm.com',
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
