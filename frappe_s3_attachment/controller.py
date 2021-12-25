@@ -201,7 +201,6 @@ class S3Operations(object):
     def compress_image(self, file_path):
         if self.s3_settings_doc.compress_image:
             actual_file_path = os.path.join(os.getcwd(), file_path)
-            actual_file_name = file_path.split('/')[-1]
             files_to_compress = ['image/jpg', 'image/jpeg', 'image/png']
             content_type = magic.from_file(actual_file_path, mime=True)
             MAX_SIZE = self.s3_settings_doc.max_size or 200000
@@ -220,17 +219,15 @@ class S3Operations(object):
                         else:
                             picture = Image.open(actual_file_path)
                         width, height = picture.size
-                        frappe.log_error('', f'size:{os.stat(actual_file_path).st_size}, max:{MAX_SIZE}, quality:{quality}, picsize:{width}:{height}')
 
                         asp_ratio = width / height
                         if(width > 800):
                             picture = picture.resize(
                                 (800, round(800/asp_ratio)), Image.ANTIALIAS)
-                            picture.save(actual_file_name, format=content_type.split('/')[1].upper())
-                        frappe.log_error('', f'size:{os.stat(actual_file_path).st_size}, max:{MAX_SIZE}, quality:{quality}, picsize:{picture.size[0]}:{picture.size[1]}')
+                            picture.save(actual_file_path)
 
                         if(content_type.split('/')[1].lower() != 'png'):
-                            picture.save(actual_file_name, format=content_type.split(
+                            picture.save(actual_file_path, format=content_type.split(
                                 '/')[1].upper(), optimize=True, quality=quality)
 
                             last_size = os.stat(actual_file_path).st_size + 1
@@ -240,9 +237,8 @@ class S3Operations(object):
                                 else:
                                     quality -= 1
                                 last_size = os.stat(actual_file_path).st_size
-                                picture.save(actual_file_name, format=content_type.split(
+                                picture.save(actual_file_path, format=content_type.split(
                                     '/')[1].upper(), optimize=True, quality=quality)
-                                # frappe.log_error('', f'size:{os.stat(actual_file_path).st_size}, max:{MAX_SIZE}, quality:{quality}')
 
                         picture.close()
             except:
