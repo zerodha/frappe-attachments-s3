@@ -204,8 +204,12 @@ def file_upload_to_s3(doc, method):
     s3_upload = S3Operations()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
-    parent_doctype = doc.attached_to_doctype
-    parent_name = doc.attached_to_name
+    if doc.doctype == "File":
+        parent_doctype = doc.doctype
+        parent_name = doc.name
+    else:
+        parent_doctype = doc.attached_to_doctype
+        parent_name = doc.attached_to_name
     ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
     if parent_doctype not in ignore_s3_upload_for_doctype:
         if not doc.is_private:
@@ -250,6 +254,19 @@ def generate_file(key=None, file_name=None):
         frappe.local.response["location"] = signed_url
     else:
         frappe.local.response['body'] = "Key not found."
+    return
+
+@frappe.whitelist()
+def generate_signed_url(key=None, file_name=None):
+    """
+    Function to stream file from s3.
+    """
+    if key:
+        s3_upload = S3Operations()
+        signed_url = s3_upload.get_url(key, file_name)
+        return signed_url
+    else:
+        frappe.throw("Key not found.")
     return
 
 
