@@ -11,6 +11,7 @@ import magic
 import frappe
 
 from botocore.exceptions import ClientError
+from frappe import _
 
 
 class S3Operations(object):
@@ -266,7 +267,7 @@ def generate_signed_url(key=None, file_name=None):
         signed_url = s3_upload.get_url(key, file_name)
         return signed_url
     else:
-        frappe.throw("Key not found.")
+        frappe.throw(_("Key not found."))
     return
 
 
