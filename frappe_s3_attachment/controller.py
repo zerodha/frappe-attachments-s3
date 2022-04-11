@@ -113,6 +113,8 @@ class S3Operations(object):
         content_type = mime_type
         try:
             if is_private:
+                file_name = file_name.encode('ascii', 'replace')
+                file_name = file_name.decode("utf-8")
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
                     ExtraArgs={
