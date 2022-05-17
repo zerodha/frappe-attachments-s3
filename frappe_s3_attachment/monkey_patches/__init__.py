@@ -1,0 +1,1 @@
+import frappe_s3_attachment.monkey_patches.importer
