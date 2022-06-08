@@ -211,7 +211,7 @@ def file_upload_to_s3(doc, method):
     s3_upload = S3Operations()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
-    if doc.doctype == "File":
+    if doc.doctype == "File" and not doc.attached_to_doctype:
         parent_doctype = doc.doctype
         parent_name = doc.name
     else:
@@ -238,15 +238,19 @@ def file_upload_to_s3(doc, method):
                 s3_upload.BUCKET,
                 key
             )
-        os.remove(file_path)
-        doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
+        frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""", (
             file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
 
-        if frappe.get_meta(parent_doctype).get('image_field'):
-            frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
+        # From this PR, this code is unuseful
+        # https://github.com/zerodha/frappe-attachments-s3/pull/39
+        # if frappe.get_meta(parent_doctype).get('image_field'):
+        #     frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(
+        #         parent_doctype).get('image_field'), file_url)
 
         frappe.db.commit()
+        doc.reload()
+        os.remove(file_path)
 
 
 @frappe.whitelist()
