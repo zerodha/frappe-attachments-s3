@@ -87,6 +87,8 @@ class S3Operations(object):
 
         doc_path = None
 
+        parent_doctype = parent_doctype if parent_doctype else "media"
+
         if not doc_path:
             if self.folder_name:
                 final_key = self.folder_name + "/" + year + "/" + month + \
