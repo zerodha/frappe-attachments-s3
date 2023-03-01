@@ -87,7 +87,7 @@ class S3Operations(object):
 
         doc_path = None
 
-        parent_doctype = parent_doctype if parent_doctype else "media"
+        parent_doctype = parent_doctype if parent_doctype else "File"
 
         if not doc_path:
             if self.folder_name:
