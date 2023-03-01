@@ -87,8 +87,6 @@ class S3Operations(object):
 
         doc_path = None
 
-        parent_doctype = parent_doctype if parent_doctype else "File"
-
         if not doc_path:
             if self.folder_name:
                 final_key = self.folder_name + "/" + year + "/" + month + \
@@ -207,7 +205,7 @@ def file_upload_to_s3(doc, method):
     s3_upload = S3Operations()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
-    parent_doctype = doc.attached_to_doctype
+    parent_doctype = doc.get("attached_to_doctype", "File")
     parent_name = doc.attached_to_name
     ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
     if parent_doctype not in ignore_s3_upload_for_doctype:
