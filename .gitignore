@@ -4,3 +4,5 @@
 *.swp
 tags
 frappe_s3_attachment/docs/current
+.python
+s3uninstall
