@@ -22,3 +22,5 @@ bench get-app frappe_s3_attachment ./frappe_s3_attachment
 bench --site ims.localhost install-app frappe_s3_attachment
 bench start
 ```
+
+Now visit ims.localhost:8000 in browser
