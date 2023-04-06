@@ -16,6 +16,16 @@ services:
     volumes:
       - mariadb-erp13:/var/lib/mysql
 
+  frappe:
+    image: frappe/bench:latest
+    command: sleep infinity
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace/development
+    ports:
+      - "8000-8005:8000-8005"
+      - "9000-9005:9000-9005"
+
   redis-cache:
     image: redis:alpine
 
