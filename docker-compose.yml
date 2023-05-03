@@ -9,31 +9,39 @@ services:
       - --skip-innodb-read-only-compressed # Temporary fix for MariaDB 10.6
     environment:
       MYSQL_ROOT_PASSWORD: erpnext
-      MARIADB_USER: erpnext
-      MARIADB_PASSWORD: erpnext
+      MYSQL_DATABASE: erpnext
+      MYSQL_USER: erpnext
+      MYSQL_PASSWORD: erpnext
     ports:
       - 3306:3306
     volumes:
       - mariadb-erp13:/var/lib/mysql
 
-  frappe:
-    image: frappe/bench:latest
-    command: sleep infinity
-    volumes:
-      - ..:/workspace
-    working_dir: /workspace/development
-    ports:
-      - "8000-8005:8000-8005"
-      - "9000-9005:9000-9005"
-
   redis-cache:
     image: redis:alpine
+    ports:
+      - 6379:6379
 
   redis-queue:
     image: redis:alpine
+    ports:
+      - 6380:6379
 
   redis-socketio:
     image: redis:alpine
+    ports:
+      - 6381:6379
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2022-06-25T15-50-16Z
+    command: server --address ":9002" --console-address ":9003" /data
+    restart: on-failure
+    ports:
+      - 9011:9003
+      - 9012:9002
+    volumes:
+      - minio:/data:rw
 
 volumes:
   mariadb-erp13:
+  minio:
