@@ -200,7 +200,7 @@ class S3Operations(object):
 def file_upload_to_s3(doc, method):
     frappe.enqueue("frappe_s3_attachment.controller.file_upload_to_s3_job", doc=doc, queue="short")
 
-def file_upload_to_s3_job(doc):
+def file_upload_to_s3_job(doc,event=None):
     """
     check and upload files to s3. the path check and
     """
