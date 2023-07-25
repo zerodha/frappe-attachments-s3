@@ -133,7 +133,7 @@ class S3Operations(object):
         """Delete file from s3"""
 
         self.S3_CLIENT.delete_object(
-                    Bucket=self.s3_settings_doc.bucket_name,
+                    Bucket=self.BUCKET,
                     Key=key
                 )
 
@@ -168,12 +168,17 @@ class S3Operations(object):
 
         return url
 
-
+@frappe.whitelist()
+def get_total_file_sizes():
+    # return size in MB of all files public and private in the system
+    a= frappe.db.sql("""SELECT SUM(file_size) FROM `tabFile`""")[0][0] or 0
+    return a
 @frappe.whitelist()
 def file_upload_to_s3(doc, method):
     """
     check and upload files to s3. the path check and
     """
+    # get the size of the file in MB and store it in the table of admin site
     s3_upload = S3Operations()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
@@ -293,8 +298,6 @@ def migrate_existing_files():
             if not s3_file_regex_match(file['file_url']):
                 upload_existing_files_s3(file['name'], file['file_name'])
     return True
-
-
 def delete_from_cloud(doc, method):
     """Delete file from s3"""
     s3 = S3Operations()
