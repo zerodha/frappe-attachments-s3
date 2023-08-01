@@ -221,24 +221,21 @@ def file_upload_to_s3(doc, method):
 
         if doc.is_private:
             method = "frappe_s3_attachment.controller.generate_file"
-            file_url = """/api/method/{0}?key={1}&file_name={2}""".format(method, key, doc.file_name)
+            file_url = frappe.utils.get_url() + """/api/method/{0}?key={1}&file_name={2}""".format(method, key, doc.file_name)
         else:
             file_url = '{}/{}/{}'.format(
                 s3_upload.S3_CLIENT.meta.endpoint_url,
                 s3_upload.BUCKET,
                 key
             )
-        os.remove(file_path)
         frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""", (
             file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
         
         doc.file_url = file_url
-        
-        if parent_doctype and frappe.get_meta(parent_doctype).get('image_field'):
-            frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
 
         frappe.db.commit()
+        os.remove(file_path)
 
 
 @frappe.whitelist()
@@ -280,18 +277,18 @@ def upload_existing_files_s3(name, file_name):
 
         if doc.is_private:
             method = "frappe_s3_attachment.controller.generate_file"
-            file_url = """/api/method/{0}?key={1}""".format(method, key)
+            file_url = frappe.utils.get_url() + """/api/method/{0}?key={1}""".format(method, key)
         else:
             file_url = '{}/{}/{}'.format(
                 s3_upload.S3_CLIENT.meta.endpoint_url,
                 s3_upload.BUCKET,
                 key
             )
-        os.remove(file_path)
         doc = frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""", (
             file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
         frappe.db.commit()
+        os.remove(file_path)
     else:
         pass
 
@@ -301,7 +298,7 @@ def s3_file_regex_match(file_url):
     Match the public file regex match.
     """
     return re.match(
-        r'^(https:|/api/method/frappe_s3_attachment.controller.generate_file)',
+        r'^(https:|http:|/api/method/frappe_s3_attachment.controller.generate_file)',
         file_url
     )
 
