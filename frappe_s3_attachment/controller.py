@@ -12,6 +12,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 import frappe
+from frappe import _
 
 
 import magic
@@ -208,7 +209,7 @@ def file_upload_to_s3(doc, method):
     parent_doctype = doc.attached_to_doctype or 'File'
     parent_name = doc.attached_to_name
     ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
-    if parent_doctype not in ignore_s3_upload_for_doctype:
+    if parent_doctype not in ignore_s3_upload_for_doctype and not public_file_regex_match(path):
         if not doc.is_private:
             file_path = site_path + '/public' + path
         else:
@@ -236,6 +237,8 @@ def file_upload_to_s3(doc, method):
 
         frappe.db.commit()
         os.remove(file_path)
+    elif not erp_or_s3_file_regex_match(s3_upload.BUCKET, path):
+        frappe.throw(_("File upload from public links disabled"))
 
 
 @frappe.whitelist()
@@ -293,14 +296,19 @@ def upload_existing_files_s3(name, file_name):
         pass
 
 
-def s3_file_regex_match(file_url):
+def public_file_regex_match(file_url):
     """
     Match the public file regex match.
     """
     return re.match(
-        r'^(https:|http:|/api/method/frappe_s3_attachment.controller.generate_file)',
+        r'^(https:|http:)',
         file_url
     )
+
+def erp_or_s3_file_regex_match(s3_bucket, file_url):
+    bucket_url = f"https://s3.ap-south-1.amazonaws.com/{s3_bucket}"
+    erp_url = f"{frappe.utils.get_url()}/api/method/frappe_s3_attachment.controller.generate_file"
+    return re.match(rf'^({erp_url}|{bucket_url})', file_url)
 
 
 @frappe.whitelist()
@@ -315,7 +323,7 @@ def migrate_existing_files():
     )
     for file in files_list:
         if file['file_url']:
-            if not s3_file_regex_match(file['file_url']):
+            if not public_file_regex_match(file['file_url']):
                 upload_existing_files_s3(file['name'], file['file_name'])
     return True
 
