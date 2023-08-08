@@ -237,8 +237,8 @@ def file_upload_to_s3(doc, method):
 
         frappe.db.commit()
         os.remove(file_path)
-    elif not erp_or_s3_file_regex_match(s3_upload.BUCKET, path):
-        frappe.throw(_("File upload from public links disabled"))
+    elif public_file_regex_match(path) and not erp_or_s3_file_regex_match(s3_upload.BUCKET, path):
+        frappe.throw(_(f"File upload from public links disabled: {path}"))
 
 
 @frappe.whitelist()
