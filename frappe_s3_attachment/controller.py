@@ -227,8 +227,13 @@ def file_upload_to_s3_job(doc):
         method = "frappe_s3_attachment.controller.generate_file"
         file_url = """/api/method/{0}?key={1}&file_name={2}""".format(method, key, doc.file_name)
         signed_s3_url = signed_url(key, doc.file_name)
-        frappe.db.sql("""UPDATE `tabFile` SET s3_url=%s, s3_hash=%s, signed_url=%s WHERE name=%s""", (
-            file_url, key, signed_s3_url, doc.name))
+        # frappe.db.sql("""UPDATE `tabFile` SET s3_url=%s, s3_hash=%s, signed_url=%s WHERE name=%s""", (
+        #     file_url, key, signed_s3_url, doc.name))
+        
+        doc.s3_url = file_url
+        doc.s3_hash = key
+        doc.signed_url = signed_s3_url
+        doc.save(ignore_permissions = True)
         
         # doc.file_url = file_url
         
