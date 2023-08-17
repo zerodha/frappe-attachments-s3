@@ -235,6 +235,7 @@ def file_upload_to_s3_job(doc):
         doc.signed_url = signed_s3_url
         doc.save(ignore_permissions = True)
         
+        
         # doc.file_url = file_url
         
         # if parent_doctype and frappe.get_meta(parent_doctype).get('image_field'):
