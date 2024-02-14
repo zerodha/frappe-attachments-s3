@@ -93,7 +93,7 @@ doc_events = {
     "File": {
         "after_insert": "frappe_s3_attachment.controller.file_upload_to_s3",
         "on_trash": "frappe_s3_attachment.controller.delete_from_cloud"
-    }
+    },
 }
 
 # Scheduled Tasks
@@ -125,7 +125,6 @@ doc_events = {
 # Overriding Whitelisted Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "frappe_s3_attachment.event.get_events"
-# }
-
+override_whitelisted_methods = {
+    "frappe.core.doctype.data_import.data_import.form_start_import": "frappe_s3_attachment.custom_data_import.custom_start_import",
+}
