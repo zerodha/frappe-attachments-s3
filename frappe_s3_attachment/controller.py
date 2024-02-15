@@ -248,6 +248,25 @@ def file_upload_to_s3(doc, method):
         os.remove(file_path)
 
 
+def get_public_file_url(url):
+    s3_upload = S3Operations()
+    bucket_url = f"https://s3.ap-south-1.amazonaws.com/{s3_upload.BUCKET}"
+    erp_url = f"{frappe.utils.get_url()}/api/method/frappe_s3_attachment.controller.generate_file"
+    if re.match(rf'^{bucket_url}', url):
+        return url
+    elif re.match(rf'^{erp_url}', url):
+        from urllib.parse import urlparse, parse_qs
+        parsed_url = urlparse(url)
+        query_params = parse_qs(parsed_url.query) or {}
+        key = query_params.get("key", [None])[0]
+        file_name = query_params.get("file_name", [None])[0]
+        if not key:
+            frappe.throw(_("Key mandatory for getting public url"))
+        return s3_upload.get_url(key, file_name)
+    else:
+        frappe.throw(_("Unhandled url to get public url"))
+
+
 @frappe.whitelist()
 def generate_file(key=None, file_name=None):
     """
