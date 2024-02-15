@@ -242,6 +242,15 @@ def file_upload_to_s3(doc, method):
 
 
 @frappe.whitelist()
+def generate_s3_file_url(key=None, file_name=None):
+    if key:
+        s3_upload = S3Operations()
+        signed_url = s3_upload.get_url(key, file_name)
+        return signed_url
+    else:
+        frappe.local.response['body'] = "Key not found."
+
+@frappe.whitelist()
 def generate_file(key=None, file_name=None):
     """
     Function to stream file from s3.
