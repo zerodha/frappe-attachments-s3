@@ -60,6 +60,7 @@ class S3Operations(object):
         """
         Generate keys for s3 objects uploaded with file name attached.
         """
+        parent_doctype =parent_doctype.replace(" ","_")
         hook_cmd = frappe.get_hooks().get("s3_key_generator")
         if hook_cmd:
             try:
@@ -95,10 +96,10 @@ class S3Operations(object):
             else:
                 final_key = year + "/" + month + "/" + day + "/" + \
                     parent_doctype + "/" + key + "_" + file_name
-            return final_key
+            return final_key.replace("/","_")
         else:
             final_key = doc_path + '/' + key + "_" + file_name
-            return final_key
+            return final_key.replace("/","_")
 
     def upload_files_to_s3_with_key(
             self, file_path, file_name, is_private, parent_doctype, parent_name
