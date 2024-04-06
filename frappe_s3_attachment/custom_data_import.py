@@ -14,7 +14,8 @@ class CustomImporter(Importer):
         if public_file_regex_match(url_path):
             if erp_or_s3_file_regex_match(s3_settings_doc.bucket_name, url_path):
                 return url_path
-            elif gdrive_file_regex_match(url_path):
+            # elif gdrive_file_regex_match(url_path):
+            else:
                 file_doc = frappe.get_doc(
                     {
                         "doctype": "File",
@@ -23,8 +24,8 @@ class CustomImporter(Importer):
                     }
                 ).save(ignore_permissions=True)
                 return file_doc.file_url
-            else:
-                frappe.throw(_("File upload from public links disabled"))
+            # else:
+            #     frappe.throw(_("File upload from public links disabled"))
         else:
             frappe.throw(_("Only links accepted in data importer for attach fields"))
 

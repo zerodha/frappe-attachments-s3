@@ -14,7 +14,7 @@ from botocore.exceptions import ClientError
 import frappe
 from frappe import _
 from .gdrive_utlis import download_file_from_gdrive
-
+import wget
 
 import magic
 
@@ -217,7 +217,13 @@ def file_upload_to_s3(doc, method):
             elif gdrive_file_regex_match(path):
                 doc.file_name, file_path = download_file_from_gdrive(path)
             else:
-                frappe.throw(_("File upload from public links disabled"))
+                try:
+                    file_path = wget.download(path, out = "/tmp/")
+                    doc.file_name = file_path.split("/")[-1]
+                except:
+                    frappe.throw(_("Error While Downloading the file"))
+            # else:
+            #     frappe.throw(_("File upload from public links disabled"))
         else:
             if not doc.is_private:
                 file_path = site_path + '/public' + path
