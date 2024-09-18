@@ -30,6 +30,92 @@ Frappe app to make file upload automatically upload and read from s3.
 4. Delete From Cloud when selected deletes the file form s3 bucket whenever a file
     is deleted from ui. By default the Delete from cloud will be unchecked.
 
+### AWS Policies for Successful Configuration
+
+To successfully upload and serve images to/from the S3 bucket, use the following policies:
+
+#### S3 Bucket Policy
+
+Replace the placeholders with your AWS Account ID and Bucket Name.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": "arn:aws:iam::<AWS_ACCOUNT_ID>:user/<YOUR_IAM_USER>"
+            },
+            "Action": [
+                "s3:GetBucketLocation",
+                "s3:ListBucket",
+                "s3:GetObject"
+            ],
+            "Resource": [
+                "arn:aws:s3:::<YOUR_BUCKET_NAME>",
+                "arn:aws:s3:::<YOUR_BUCKET_NAME>/*"
+            ]
+        }
+    ]
+}
+```
+#### IAM Policy
+Attach this policy to your IAM user or role that Frappe uses to interact with S3:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::<YOUR_BUCKET_NAME>",
+                "arn:aws:s3:::<YOUR_BUCKET_NAME>/*"
+            ]
+        }
+    ]
+}
+```
+#### CORS Policy
+Set this CORS configuration for your S3 bucket to allow access from your Frappe application:
+```json
+[
+    {
+        "AllowedHeaders": ["*"],
+        "AllowedMethods": ["GET", "POST", "PUT", "DELETE"],
+        "AllowedOrigins": ["https://<YOUR_FRAPPE_APPLICATION_DOMAIN>"],
+        "ExposeHeaders": ["ETag", "x-amz-meta-custom-header"],
+        "MaxAgeSeconds": 3000
+    }
+]
+```
+
+
+### Explanation of the Combined Policies
+
+1. **S3 Bucket Policy**:
+   - Combines all necessary actions (`s3:GetBucketLocation`, `s3:ListBucket`, `s3:GetObject`) into a single policy statement for simplicity.
+   - Specifies the principal (IAM user or role) that needs these permissions.
+   - Applies the actions to both the bucket itself (`arn:aws:s3:::<YOUR_BUCKET_NAME>`) and all objects within the bucket (`arn:aws:s3:::<YOUR_BUCKET_NAME>/*`).
+
+2. **IAM Policy**:
+   - Provides full S3 access (`s3:*`) to the specified bucket and its objects.
+   - Attach this policy to the IAM user or role that the Frappe app uses to manage S3.
+
+3. **CORS Policy**:
+   - Ensures that your Frappe application can interact with S3 by allowing necessary HTTP methods and headers for cross-origin requests.
+
+### Usage
+
+Replace placeholders with actual values:
+- **`<AWS_ACCOUNT_ID>`**: Your AWS Account ID.
+- **`<YOUR_IAM_USER>`**: The IAM user or role for the Frappe application.
+- **`<YOUR_BUCKET_NAME>`**: Your S3 bucket name.
+- **`<YOUR_FRAPPE_APPLICATION_DOMAIN>`**: The domain of your Frappe application.
+
+By using these policies, you ensure that your Frappe app can successfully upload, read, and manage files in your S3 bucket.
+
 #### License
 
 MIT
