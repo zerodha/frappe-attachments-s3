@@ -140,23 +140,10 @@ class S3Operations(object):
         return key
 
     def delete_from_s3(self, key):
-        """Delete file from s3"""
-        self.s3_settings_doc = frappe.get_doc(
-            'S3 File Attachment',
-            'S3 File Attachment',
-        )
-
+        """ Delete file from s3"""
         if self.s3_settings_doc.delete_file_from_cloud:
-            s3_client = boto3.client(
-                's3',
-                aws_access_key_id=self.s3_settings_doc.aws_key,
-                aws_secret_access_key=self.s3_settings_doc.aws_secret,
-                region_name=self.s3_settings_doc.region_name,
-                config=Config(signature_version='s3v4')
-            )
-
             try:
-                s3_client.delete_object(
+                self.S3_CLIENT.delete_object(
                     Bucket=self.s3_settings_doc.bucket_name,
                     Key=key
                 )
