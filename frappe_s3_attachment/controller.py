@@ -12,7 +12,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 import frappe
-
+from frappe.utils.password import get_decrypted_password
 
 import magic
 
@@ -35,7 +35,11 @@ class S3Operations(object):
             self.S3_CLIENT = boto3.client(
                 's3',
                 aws_access_key_id=self.s3_settings_doc.aws_key,
-                aws_secret_access_key=self.s3_settings_doc.aws_secret,
+                aws_secret_access_key=get_decrypted_password(
+                    'S3 File Attachment',
+                    'S3 File Attachment',
+                    'aws_secret'
+                ),
                 region_name=self.s3_settings_doc.region_name,
                 config=Config(signature_version='s3v4')
             )
