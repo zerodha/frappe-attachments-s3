@@ -22,6 +22,8 @@ Frappe app to make file upload automatically upload and read from s3.
 
 #### Configuration Setup.
 
+Option 1: Frappe console
+
 1. Open single doctype "s3 File Attachment"
 2. Enter (Bucket Name, AWS key, AWS secret, S3 bucket Region name, Folder Name)
     Folder Name- folder name is the default folder path in s3.
@@ -29,6 +31,17 @@ Frappe app to make file upload automatically upload and read from s3.
     to be migrated to s3.
 4. Delete From Cloud when selected deletes the file form s3 bucket whenever a file
     is deleted from ui. By default the Delete from cloud will be unchecked.
+
+Option 2: Environment variables
+```bash
+S3_BUCKET_URL=https://fsn1.your-objectstorage.com
+S3_BUCKET_NAME=you-bucket-name
+S3_REGION_NAME=fsn1
+S3_KEY=<s3-key>
+S3_SECRET=<s3-secret>
+S3_FOLDER_NAME=
+S3_DELETE_FILE_FROM_CLOUD=1 # delete previous file on update
+```
 
 #### License
 

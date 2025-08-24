@@ -13,8 +13,11 @@ from botocore.exceptions import ClientError
 
 import frappe
 
-
 import magic
+
+from .utils import load_s3_settings
+
+SIGNED_URL_EXPIRY_TIME = 120  # Default expiry time in seconds
 
 
 class S3Operations(object):
@@ -28,26 +31,28 @@ class S3Operations(object):
             'S3 File Attachment',
             'S3 File Attachment',
         )
-        if (
-            self.s3_settings_doc.aws_key and
-            self.s3_settings_doc.aws_secret
-        ):
+        s3_settings = load_s3_settings(self.s3_settings_doc)
+        self.aws_key = s3_settings["aws_key"]
+        self.aws_secret = s3_settings["aws_secret"]
+        if self.aws_key and self.aws_secret:
             self.S3_CLIENT = boto3.client(
                 's3',
-                endpoint_url=self.s3_settings_doc.bucket_url,
-                aws_access_key_id=self.s3_settings_doc.aws_key,
-                aws_secret_access_key=self.s3_settings_doc.aws_secret,
-                region_name=self.s3_settings_doc.region_name,
+                endpoint_url=s3_settings["bucket_url"],
+                aws_access_key_id=s3_settings["aws_key"],
+                aws_secret_access_key=s3_settings["aws_secret"],
+                region_name=s3_settings["region_name"],
                 config=Config(signature_version='s3v4')
             )
         else:
             self.S3_CLIENT = boto3.client(
                 's3',
-                region_name=self.s3_settings_doc.region_name,
+                region_name=s3_settings["region_name"],
                 config=Config(signature_version='s3v4')
             )
-        self.BUCKET = self.s3_settings_doc.bucket_name
-        self.folder_name = self.s3_settings_doc.folder_name
+        self.BUCKET = s3_settings["bucket_name"]
+        self.folder_name = s3_settings["folder_name"]
+        self.signed_url_expiry_time = s3_settings["signed_url_expiry_time"] or SIGNED_URL_EXPIRY_TIME
+        self.delete_file_from_cloud = s3_settings["delete_file_from_cloud"]
 
     def strip_special_chars(self, file_name):
         """
@@ -146,10 +151,10 @@ class S3Operations(object):
 
     def delete_from_s3(self, key):
         """ Delete file from s3"""
-        if self.s3_settings_doc.delete_file_from_cloud:
+        if self.s3_settings["delete_file_from_cloud"]:
             try:
                 self.S3_CLIENT.delete_object(
-                    Bucket=self.s3_settings_doc.bucket_name,
+                    Bucket=self.BUCKET,
                     Key=key
                 )
             except ClientError:
@@ -168,10 +173,6 @@ class S3Operations(object):
         :param bucket: s3 bucket name
         :param key: s3 object key
         """
-        if self.s3_settings_doc.signed_url_expiry_time:
-            self.signed_url_expiry_time = self.s3_settings_doc.signed_url_expiry_time # noqa
-        else:
-            self.signed_url_expiry_time = 120
         params = {
                 'Bucket': self.BUCKET,
                 'Key': key,
@@ -233,13 +234,16 @@ def generate_file(key=None, file_name=None):
     """
     Function to stream file from s3.
     """
-    if key:
-        s3_upload = S3Operations()
-        signed_url = s3_upload.get_url(key, file_name)
-        frappe.local.response["type"] = "redirect"
-        frappe.local.response["location"] = signed_url
-    else:
-        frappe.local.response['body'] = "Key not found."
+    try:
+        if key:
+            s3_upload = S3Operations()
+            signed_url = s3_upload.get_url(key, file_name)
+            frappe.local.response["type"] = "redirect"
+            frappe.local.response["location"] = signed_url
+        else:
+            frappe.local.response['body'] = "Key not found."
+    except Exception as e:
+        frappe.local.response['body'] = "Error: {}".format(e)
     return
 
 
