@@ -32,19 +32,15 @@ class S3Operations(object):
             self.s3_settings_doc.aws_key and
             self.s3_settings_doc.aws_secret
         ):
-            try:
-                self.S3_CLIENT = boto3.client(
-                's3',
-                endpoint_url=self.s3_settings_doc.bucket_url,
-                aws_access_key_id=self.s3_settings_doc.aws_key,
-                aws_secret_access_key=self.s3_settings_doc.aws_secret,
-                region_name=self.s3_settings_doc.region_name,
-                config=Config(signature_version='s3v4')
-            )
-            except Exception as e:
-                print('.......error in creating s3 client', e)
+            self.S3_CLIENT = boto3.client(
+            's3',
+            endpoint_url=self.s3_settings_doc.bucket_url,
+            aws_access_key_id=self.s3_settings_doc.aws_key,
+            aws_secret_access_key=self.s3_settings_doc.aws_secret,
+            region_name=self.s3_settings_doc.region_name,
+            config=Config(signature_version='s3v4')
+        )
         else:
-            print('.......inside else')
             self.S3_CLIENT = boto3.client(
                 's3',
                 region_name=self.s3_settings_doc.region_name,
@@ -140,11 +136,12 @@ class S3Operations(object):
                     }
                 )
 
-        except boto3.exceptions.S3UploadFailedError as e:
-            print("error", e)
+        except (boto3.exceptions.S3UploadFailedError) as e:
+            print(">> S3UploadFailedError", e)
             frappe.throw(frappe._("File Upload Failed. Please try again."))
         except Exception as e:
-            print("error", e)
+            print(">> upload_files_to_s3_with_key Error:", e)
+            raise e
         return key
 
     def delete_from_s3(self, key):
@@ -238,7 +235,6 @@ def generate_file(key=None, file_name=None):
     """
     Function to stream file from s3.
     """
-    print(".......... File loadded from s3 ..........")
     if key:
         s3_upload = S3Operations()
         signed_url = s3_upload.get_url(key, file_name)
