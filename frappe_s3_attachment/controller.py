@@ -33,13 +33,13 @@ class S3Operations(object):
             self.s3_settings_doc.aws_secret
         ):
             self.S3_CLIENT = boto3.client(
-            's3',
-            endpoint_url=self.s3_settings_doc.bucket_url,
-            aws_access_key_id=self.s3_settings_doc.aws_key,
-            aws_secret_access_key=self.s3_settings_doc.aws_secret,
-            region_name=self.s3_settings_doc.region_name,
-            config=Config(signature_version='s3v4')
-        )
+                's3',
+                endpoint_url=self.s3_settings_doc.bucket_url,
+                aws_access_key_id=self.s3_settings_doc.aws_key,
+                aws_secret_access_key=self.s3_settings_doc.aws_secret,
+                region_name=self.s3_settings_doc.region_name,
+                config=Config(signature_version='s3v4')
+            )
         else:
             self.S3_CLIENT = boto3.client(
                 's3',
