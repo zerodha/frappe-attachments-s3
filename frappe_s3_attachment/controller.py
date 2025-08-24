@@ -28,23 +28,33 @@ class S3Operations(object):
             'S3 File Attachment',
             'S3 File Attachment',
         )
+        print('.......s3 settings doc', self.s3_settings_doc)
+        print(f'.......s3 settings doc creds {self.s3_settings_doc.aws_key=} and {self.s3_settings_doc.aws_secret=}')
+        print('.......url: ', self.s3_settings_doc.bucket_url)
         if (
             self.s3_settings_doc.aws_key and
             self.s3_settings_doc.aws_secret
         ):
-            self.S3_CLIENT = boto3.client(
+            print('.......inside if', self.s3_settings_doc.bucket_url)
+            try:
+                self.S3_CLIENT = boto3.client(
                 's3',
+                endpoint_url=self.s3_settings_doc.bucket_url,
                 aws_access_key_id=self.s3_settings_doc.aws_key,
                 aws_secret_access_key=self.s3_settings_doc.aws_secret,
                 region_name=self.s3_settings_doc.region_name,
                 config=Config(signature_version='s3v4')
             )
+            except Exception as e:
+                print('.......error in creating s3 client', e)
         else:
+            print('.......inside else')
             self.S3_CLIENT = boto3.client(
                 's3',
                 region_name=self.s3_settings_doc.region_name,
                 config=Config(signature_version='s3v4')
             )
+        print('.......s3 client created', self.S3_CLIENT)
         self.BUCKET = self.s3_settings_doc.bucket_name
         self.folder_name = self.s3_settings_doc.folder_name
 
@@ -111,6 +121,7 @@ class S3Operations(object):
         key = self.key_generator(file_name, parent_doctype, parent_name)
         content_type = mime_type
         try:
+            print('.......uploading file to s3')
             if is_private:
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
@@ -126,17 +137,21 @@ class S3Operations(object):
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
                     ExtraArgs={
-                        "ContentType": content_type,
                         "ACL": 'public-read',
+                        "ContentType": content_type,
                         "Metadata": {
                             "ContentType": content_type,
-
+                            "file_name": file_name
                         }
                     }
                 )
+                print('.......file uploaded to s3')
 
-        except boto3.exceptions.S3UploadFailedError:
+        except boto3.exceptions.S3UploadFailedError as e:
+            print("error", e)
             frappe.throw(frappe._("File Upload Failed. Please try again."))
+        except Exception as e:
+            print("error", e)
         return key
 
     def delete_from_s3(self, key):
@@ -189,12 +204,18 @@ def file_upload_to_s3(doc, method):
     """
     check and upload files to s3. the path check and
     """
+    print('............. file upload to s3 called .............')
     s3_upload = S3Operations()
+    print('............. s3 object created .............')
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
+    print(f'............. {path=}, {site_path=}')
     parent_doctype = doc.attached_to_doctype or 'File'
+    print(f'.............{parent_doctype=}')
     parent_name = doc.attached_to_name
+    print(f'.............{parent_name=}')
     ignore_s3_upload_for_doctype = frappe.local.conf.get('ignore_s3_upload_for_doctype') or ['Data Import']
+    print('......1.....')
     if parent_doctype not in ignore_s3_upload_for_doctype:
         if not doc.is_private:
             file_path = site_path + '/public' + path
@@ -205,6 +226,7 @@ def file_upload_to_s3(doc, method):
             doc.is_private, parent_doctype,
             parent_name
         )
+        print(f'......2..... {doc.is_private=}')
 
         if doc.is_private:
             method = "frappe_s3_attachment.controller.generate_file"
@@ -215,17 +237,19 @@ def file_upload_to_s3(doc, method):
                 s3_upload.BUCKET,
                 key
             )
+        print(f'......3..... {file_url=}')
         os.remove(file_path)
         frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""", (
             file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
-
+        print(f'......4..... {doc.name=}')
         doc.file_url = file_url
-
-        if parent_doctype and frappe.get_meta(parent_doctype).get('image_field'):
-            frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
-
+        print('......5.....', parent_doctype, frappe.get_meta(parent_doctype).get('image_field'))
+        # if parent_doctype and frappe.get_meta(parent_doctype).get('image_field'):
+        #     frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
+        print(f'......6..... {parent_doctype=}, {parent_name=}')
         frappe.db.commit()
+        print('......7.....')        
 
 
 @frappe.whitelist()
@@ -233,6 +257,7 @@ def generate_file(key=None, file_name=None):
     """
     Function to stream file from s3.
     """
+    print(".......... File loadded from s3 ..........")
     if key:
         s3_upload = S3Operations()
         signed_url = s3_upload.get_url(key, file_name)
