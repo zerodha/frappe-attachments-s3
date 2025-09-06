@@ -50,9 +50,15 @@ class S3Operations(object):
                 config=Config(signature_version='s3v4')
             )
         self.BUCKET = self.s3_settings["bucket_name"]
-        self.folder_name = self.s3_settings["folder_name"]
         self.signed_url_expiry_time = self.s3_settings["signed_url_expiry_time"] or SIGNED_URL_EXPIRY_TIME
-        self.delete_file_from_cloud = self.s3_settings["delete_file_from_cloud"]
+        self.delete_file_from_cloud = self.s3_settings["delete_file_from_cloud"]        
+        _sitename = frappe.local.site or frappe.get_site_name()
+        self.folder_name = self.s3_settings["folder_name"]
+        if self.folder_name:
+            self.folder_name = f"{self.folder_name}/{_sitename}"
+        else:
+            self.folder_name = _sitename
+        
 
     def strip_special_chars(self, file_name):
         """
@@ -113,7 +119,6 @@ class S3Operations(object):
         Uploads a new file to S3.
         Strips the file extension to set the content_type in metadata.
         """
-        print(">> Uploading file to s3", self.s3_settings_doc)
         mime_type = magic.from_file(file_path, mime=True)
         key = self.key_generator(file_name, parent_doctype, parent_name)
         content_type = mime_type
@@ -143,16 +148,13 @@ class S3Operations(object):
                 )
 
         except (boto3.exceptions.S3UploadFailedError) as e:
-            print(">> S3UploadFailedError", e)
             frappe.throw(frappe._("File Upload Failed. Please try again."))
         except Exception as e:
-            print(">> upload_files_to_s3_with_key Error:", e)
             raise e
         return key
 
     def delete_from_s3(self, key):
         """ Delete file from s3"""
-        print(">> Deleting file from s3", self.s3_settings)
         if self.s3_settings["delete_file_from_cloud"]:
             try:
                 self.S3_CLIENT.delete_object(
@@ -166,7 +168,6 @@ class S3Operations(object):
         """
         Function to read file from a s3 file.
         """
-        print(">>>")
         return self.S3_CLIENT.get_object(Bucket=self.BUCKET, Key=key)
 
     def get_url(self, key, file_name=None):
@@ -176,7 +177,6 @@ class S3Operations(object):
         :param bucket: s3 bucket name
         :param key: s3 object key
         """
-        print(">>> Generating signed url")
         params = {
                 'Bucket': self.BUCKET,
                 'Key': key,
