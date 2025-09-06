@@ -13,8 +13,11 @@ from botocore.exceptions import ClientError
 
 import frappe
 
-
 import magic
+
+from .utils import load_s3_settings
+
+SIGNED_URL_EXPIRY_TIME = 120  # Default expiry time in seconds
 
 
 class S3Operations(object):
@@ -28,25 +31,34 @@ class S3Operations(object):
             'S3 File Attachment',
             'S3 File Attachment',
         )
-        if (
-            self.s3_settings_doc.aws_key and
-            self.s3_settings_doc.aws_secret
-        ):
+        self.s3_settings = load_s3_settings(self.s3_settings_doc)
+        self.aws_key = self.s3_settings["aws_key"]
+        self.aws_secret = self.s3_settings["aws_secret"]
+        if self.aws_key and self.aws_secret:
             self.S3_CLIENT = boto3.client(
                 's3',
-                aws_access_key_id=self.s3_settings_doc.aws_key,
-                aws_secret_access_key=self.s3_settings_doc.aws_secret,
-                region_name=self.s3_settings_doc.region_name,
+                endpoint_url=self.s3_settings["bucket_url"],
+                aws_access_key_id=self.s3_settings["aws_key"],
+                aws_secret_access_key=self.s3_settings["aws_secret"],
+                region_name=self.s3_settings["region_name"],
                 config=Config(signature_version='s3v4')
             )
         else:
             self.S3_CLIENT = boto3.client(
                 's3',
-                region_name=self.s3_settings_doc.region_name,
+                region_name=self.s3_settings["region_name"],
                 config=Config(signature_version='s3v4')
             )
-        self.BUCKET = self.s3_settings_doc.bucket_name
-        self.folder_name = self.s3_settings_doc.folder_name
+        self.BUCKET = self.s3_settings["bucket_name"]
+        self.signed_url_expiry_time = self.s3_settings["signed_url_expiry_time"] or SIGNED_URL_EXPIRY_TIME
+        self.delete_file_from_cloud = self.s3_settings["delete_file_from_cloud"]        
+        _sitename = frappe.local.site or frappe.get_site_name()
+        self.folder_name = self.s3_settings["folder_name"]
+        if self.folder_name:
+            self.folder_name = f"{self.folder_name}/{_sitename}"
+        else:
+            self.folder_name = _sitename
+        
 
     def strip_special_chars(self, file_name):
         """
@@ -126,25 +138,27 @@ class S3Operations(object):
                 self.S3_CLIENT.upload_file(
                     file_path, self.BUCKET, key,
                     ExtraArgs={
-                        "ContentType": content_type,
                         "ACL": 'public-read',
+                        "ContentType": content_type,
                         "Metadata": {
                             "ContentType": content_type,
-
+                            "file_name": file_name
                         }
                     }
                 )
 
-        except boto3.exceptions.S3UploadFailedError:
+        except (boto3.exceptions.S3UploadFailedError) as e:
             frappe.throw(frappe._("File Upload Failed. Please try again."))
+        except Exception as e:
+            raise e
         return key
 
     def delete_from_s3(self, key):
         """ Delete file from s3"""
-        if self.s3_settings_doc.delete_file_from_cloud:
+        if self.s3_settings["delete_file_from_cloud"]:
             try:
                 self.S3_CLIENT.delete_object(
-                    Bucket=self.s3_settings_doc.bucket_name,
+                    Bucket=self.BUCKET,
                     Key=key
                 )
             except ClientError:
@@ -163,10 +177,6 @@ class S3Operations(object):
         :param bucket: s3 bucket name
         :param key: s3 object key
         """
-        if self.s3_settings_doc.signed_url_expiry_time:
-            self.signed_url_expiry_time = self.s3_settings_doc.signed_url_expiry_time # noqa
-        else:
-            self.signed_url_expiry_time = 120
         params = {
                 'Bucket': self.BUCKET,
                 'Key': key,
@@ -219,12 +229,7 @@ def file_upload_to_s3(doc, method):
         frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""", (
             file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
-
         doc.file_url = file_url
-
-        if parent_doctype and frappe.get_meta(parent_doctype).get('image_field'):
-            frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
-
         frappe.db.commit()
 
 
@@ -233,13 +238,16 @@ def generate_file(key=None, file_name=None):
     """
     Function to stream file from s3.
     """
-    if key:
-        s3_upload = S3Operations()
-        signed_url = s3_upload.get_url(key, file_name)
-        frappe.local.response["type"] = "redirect"
-        frappe.local.response["location"] = signed_url
-    else:
-        frappe.local.response['body'] = "Key not found."
+    try:
+        if key:
+            s3_upload = S3Operations()
+            signed_url = s3_upload.get_url(key, file_name)
+            frappe.local.response["type"] = "redirect"
+            frappe.local.response["location"] = signed_url
+        else:
+            frappe.local.response['body'] = "Key not found."
+    except Exception as e:
+        frappe.local.response['body'] = "Error: {}".format(e)
     return
 
 
