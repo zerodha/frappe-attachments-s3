@@ -111,6 +111,14 @@ class S3Operations(object):
         Uploads a new file to S3.
         Strips the file extension to set the content_type in metadata.
         """
+        if not self.BUCKET:
+            frappe.throw(
+                frappe._("S3 Bucket Name is not configured in S3 File Attachment settings")
+            )
+        if not os.path.exists(file_path):
+            frappe.throw(
+                frappe._("File not found: {0}").format(file_path)
+            )
         mime_type = magic.from_file(file_path, mime=True)
         key = self.key_generator(file_name, parent_doctype, parent_name)
         content_type = mime_type
@@ -193,6 +201,8 @@ def file_upload_to_s3(doc, method):
     """
     check and upload files to s3. the path check and
     """
+    if doc.attached_to_doctype == "Prepared Report":
+        return
     if getattr(doc, "custom_skip_s3_upload", 0):
         frappe.logger().info(f"Skipping S3 upload for {doc.name} due to skip_s3_upload flag.")
         return
@@ -207,32 +217,44 @@ def file_upload_to_s3(doc, method):
             file_path = site_path + '/public' + path
         else:
             file_path = site_path + path
-        key = s3_upload.upload_files_to_s3_with_key(
-            file_path, doc.file_name,
-            doc.is_private, parent_doctype,
-            parent_name
-        )
-
-        if doc.is_private:
-            method = "frappe_s3_attachment.controller.generate_file"
-            file_url = """/api/method/{0}?key={1}&file_name={2}""".format(method, key, doc.file_name)
-        else:
-            file_url = '{}/{}/{}'.format(
-                s3_upload.S3_CLIENT.meta.endpoint_url,
-                s3_upload.BUCKET,
-                key
+        if not os.path.exists(file_path):
+            frappe.logger().error(
+                f"File not found for S3 upload: {file_path} (File: {doc.name})"
             )
-        os.remove(file_path)
-        frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
-            old_parent=%s, content_hash=%s WHERE name=%s""", (
-            file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
+            return
+        try:
+            key = s3_upload.upload_files_to_s3_with_key(
+                file_path, doc.file_name,
+                doc.is_private, parent_doctype,
+                parent_name
+            )
 
-        doc.file_url = file_url
+            if doc.is_private:
+                method = "frappe_s3_attachment.controller.generate_file"
+                file_url = """/api/method/{0}?key={1}&file_name={2}""".format(method, key, doc.file_name)
+            else:
+                file_url = '{}/{}/{}'.format(
+                    s3_upload.S3_CLIENT.meta.endpoint_url,
+                    s3_upload.BUCKET,
+                    key
+                )
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
+                old_parent=%s, content_hash=%s WHERE name=%s""", (
+                file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
 
-        if parent_doctype and frappe.get_meta(parent_doctype).get('image_field'):
-            frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
+            doc.file_url = file_url
 
-        frappe.db.commit()
+            if parent_doctype and frappe.get_meta(parent_doctype).get('image_field'):
+                frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
+
+            frappe.db.commit()
+        except Exception as e:
+            frappe.logger().error(
+                f"Error uploading file to S3: {doc.name}. Error: {str(e)}"
+            )
+            return
 
 
 @frappe.whitelist()
