@@ -1,0 +1,6 @@
+[tool.bench.frappe-dependencies]
+frappe = ">=10.0.0,<17.0.0"
+
+dependencies = [
+	"python-magic==0.4.18",
+]
