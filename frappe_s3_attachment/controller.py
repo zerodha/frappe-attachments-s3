@@ -110,6 +110,7 @@ class S3Operations(object):
         mime_type = magic.from_file(file_path, mime=True)
         key = self.key_generator(file_name, parent_doctype, parent_name)
         content_type = mime_type
+        ascii_file_name = file_name.encode('ascii', 'ignore').decode('ascii')
         try:
             if is_private:
                 self.S3_CLIENT.upload_file(
@@ -118,7 +119,7 @@ class S3Operations(object):
                         "ContentType": content_type,
                         "Metadata": {
                             "ContentType": content_type,
-                            "file_name": file_name
+                            "file_name": ascii_file_name
                         }
                     }
                 )
