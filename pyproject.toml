@@ -1,11 +1,20 @@
-[tool.bench.frappe-dependencies]
-frappe = ">=10.0.0,<17.0.0"
-
+[project]
+name = "frappe_s3_attachment"
+authors = [
+    { name = "Frappe", email = "ramesh.ravi@zerodha.com"}
+]
+description = "Frappe app to make file upload to S3 through attach file option."
+requires-python = ">=3.14"
+readme = "README.md"
+dynamic = ["version"]
 dependencies = [
-	"python-magic==0.4.18",
+    "python-magic==0.4.18",
     "boto3>=1.34.0",
     "botocore>=1.34.0",
     "s3transfer>=0.10.0",
     "six>=1.16.0",
     "urllib3<2.0.0"
 ]
+
+[tool.bench.frappe-dependencies]
+frappe = ">=10.0.0,<17.0.0"
