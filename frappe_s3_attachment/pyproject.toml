@@ -1,0 +1,21 @@
+[project]
+name = "frappe_s3_attachment"
+authors = [
+    { name = "Auriga IT", email = "praveen.kumawat@aurigait.com"}
+]
+description = "Generic custom app for s3 file uploads"
+requires-python = ">=3.10"
+readme = "README.md"
+dynamic = ["version"]
+dependencies = [
+    "boto3==1.37.30",
+    "botocore==1.37.30"
+]
+
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+# These dependencies are only installed when developer mode is enabled
+[tool.bench.dev-dependencies]
+# package_name = "~=1.1.0"
