@@ -5,6 +5,7 @@ import os
 import random
 import re
 import string
+import urllib.parse
 
 import boto3
 
@@ -12,7 +13,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 
 import frappe
-
+from frappe.core.doctype.file.file import File
 
 import magic
 
@@ -315,3 +316,19 @@ def ping():
     Test function to check if api function work.
     """
     return "pong"
+
+
+class CustomFile(File):
+    """Extends Frappe's File doctype to support content retrieval for files stored in S3
+    via the frappe_s3_attachment URL pattern (/api/method/frappe_s3_attachment.controller.generate_file?key=...)."""
+
+    def get_content(self) -> bytes:
+        if self.file_url and s3_file_regex_match(self.file_url):
+            parsed = urllib.parse.urlparse(self.file_url)
+            params = urllib.parse.parse_qs(parsed.query)
+            key = params.get("key", [None])[0]
+            if key:
+                s3 = S3Operations()
+                response = s3.read_file_from_s3(key)
+                return response["Body"].read()
+        return super().get_content()
