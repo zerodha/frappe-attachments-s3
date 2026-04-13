@@ -246,7 +246,7 @@ def upload_existing_files_s3(name):
         s3_upload = S3Operations()
         path = doc.file_url
         site_path = frappe.utils.get_site_path()
-        parent_doctype = doc.attached_to_doctype
+        parent_doctype = doc.attached_to_doctype or 'File'
         parent_name = doc.attached_to_name
         if not doc.is_private:
             file_path = site_path + '/public' + path
@@ -268,8 +268,8 @@ def upload_existing_files_s3(name):
 
         frappe.db.sql(
             """UPDATE `tabFile` SET file_url=%s, folder=%s,
-            old_parent=%s, content_hash=%s WHERE name=%s""",
-            (file_url, "Home/Attachments", "Home/Attachments", key, doc.name),
+            old_parent=%s WHERE name=%s""",
+            (file_url, "Home/Attachments", "Home/Attachments", doc.name),
         )
         frappe.db.commit()
 
@@ -348,8 +348,15 @@ def _migrate_batch(file_names):
 
 def delete_from_cloud(doc, method):
     """Delete file from s3"""
-    s3 = S3Operations()
-    s3.delete_from_s3(doc.content_hash)
+    if not doc.file_url or not s3_file_regex_match(doc.file_url):
+        return
+    parsed = urllib.parse.urlparse(doc.file_url)
+    key = urllib.parse.parse_qs(parsed.query).get("key", [None])[0]
+    if not key:
+        key = doc.content_hash
+    if key:
+        s3 = S3Operations()
+        s3.delete_from_s3(key)
 
 
 @frappe.whitelist()
