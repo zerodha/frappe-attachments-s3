@@ -266,15 +266,15 @@ def upload_existing_files_s3(name):
         generate_method = "frappe_s3_attachment.controller.generate_file"
         file_url = """/api/method/{0}?key={1}&file_name={2}""".format(generate_method, key, doc.file_name)
 
-        # Remove file from local.
-        os.remove(file_path)
-
         frappe.db.sql(
             """UPDATE `tabFile` SET file_url=%s, folder=%s,
             old_parent=%s, content_hash=%s WHERE name=%s""",
             (file_url, "Home/Attachments", "Home/Attachments", key, doc.name),
         )
         frappe.db.commit()
+
+        # Remove local file only after DB commit succeeds
+        os.remove(file_path)
 
 
 def s3_file_regex_match(file_url):
@@ -290,18 +290,60 @@ def s3_file_regex_match(file_url):
 @frappe.whitelist()
 def migrate_existing_files():
     """
-    Function to migrate the existing files to s3.
+    Enqueue a background job to migrate all local files to S3.
+    Returns immediately so the HTTP request does not time out.
     """
-
-    files_list = frappe.get_all(
-        'File',
-        fields=['name', 'file_url']
+    frappe.enqueue(
+        "frappe_s3_attachment.controller._migrate_files_background",
+        queue="long",
+        timeout=18000,
+        job_name="S3 Migration",
     )
-    for file in files_list:
-        if file['file_url']:
-            if not s3_file_regex_match(file['file_url']):
-                upload_existing_files_s3(file['name'])
-    return True
+    return "Migration started in background. Check Error Log for any failures."
+
+
+def _migrate_files_background():
+    """
+    Fetch all non-S3 file names and enqueue them in batches of 500.
+    """
+    BATCH_SIZE = 500
+
+    all_files = frappe.db.get_all(
+        "File",
+        filters=[["file_url", "not like", "%/api/method/frappe_s3_attachment%"],
+                 ["file_url", "not like", "https:%"],
+                 ["file_url", "!=", ""]],
+        fields=["name"],
+        pluck="name",
+    )
+
+    for i in range(0, len(all_files), BATCH_SIZE):
+        batch = all_files[i: i + BATCH_SIZE]
+        frappe.enqueue(
+            "frappe_s3_attachment.controller._migrate_batch",
+            queue="long",
+            timeout=3600,
+            job_name="S3 Migration batch {}-{}".format(i, i + len(batch)),
+            file_names=batch,
+        )
+
+
+def _migrate_batch(file_names):
+    """
+    Migrate a batch of files to S3. Failures are logged per-file and do not
+    stop the rest of the batch.
+    """
+    for name in file_names:
+        try:
+            file_url = frappe.db.get_value("File", name, "file_url")
+            if not file_url or s3_file_regex_match(file_url):
+                continue
+            upload_existing_files_s3(name)
+        except Exception:
+            frappe.log_error(
+                title="S3 Migration failed for file: {}".format(name),
+                message=frappe.get_traceback(),
+            )
 
 
 def delete_from_cloud(doc, method):
