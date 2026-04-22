@@ -233,6 +233,14 @@ def generate_file(key=None, file_name=None):
     """
     if key:
         s3_upload = S3Operations()
+        # URL-decode key and file_name: Frappe's frontend may double-encode the
+        # file_url, so %20 can arrive as literal "%20" text. boto3 then treats
+        # the literal % as a character and encodes it to %25, producing %2520
+        # in the presigned URL which breaks the AWS signature. Unquoting here
+        # is idempotent when the values are already decoded.
+        key = urllib.parse.unquote(key)
+        if file_name:
+            file_name = urllib.parse.unquote(file_name)
         signed_url = s3_upload.get_url(key, file_name)
         frappe.local.response["type"] = "redirect"
         frappe.local.response["location"] = signed_url
