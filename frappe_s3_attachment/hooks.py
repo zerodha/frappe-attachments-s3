@@ -96,6 +96,14 @@ doc_events = {
     }
 }
 
+# DocType Class
+# ---------------
+# Override standard doctype classes
+
+override_doctype_class = {
+    "File": "frappe_s3_attachment.controller.CustomFile"
+}
+
 # Scheduled Tasks
 # ---------------
 
