@@ -207,11 +207,13 @@ def file_upload_to_s3(doc, method):
         )
 
         generate_method = "frappe_s3_attachment.controller.generate_file"
-        file_url = """/api/method/{0}?key={1}&file_name={2}""".format(generate_method, key, doc.file_name)
-        os.remove(file_path)
+        file_url = """/api/method/{0}?key={1}&file_name={2}""".format(
+            generate_method, key, urllib.parse.quote(doc.file_name)
+        )
+
         frappe.db.sql("""UPDATE `tabFile` SET file_url=%s, folder=%s,
-            old_parent=%s, content_hash=%s WHERE name=%s""", (
-            file_url, 'Home/Attachments', 'Home/Attachments', key, doc.name))
+            old_parent=%s WHERE name=%s""", (
+            file_url, 'Home/Attachments', 'Home/Attachments', doc.name))
 
         doc.file_url = file_url
 
@@ -219,6 +221,9 @@ def file_upload_to_s3(doc, method):
             frappe.db.set_value(parent_doctype, parent_name, frappe.get_meta(parent_doctype).get('image_field'), file_url)
 
         frappe.db.commit()
+
+        # Remove local file only after DB commit succeeds
+        os.remove(file_path)
 
 
 @frappe.whitelist()
@@ -264,7 +269,9 @@ def upload_existing_files_s3(name):
         )
 
         generate_method = "frappe_s3_attachment.controller.generate_file"
-        file_url = """/api/method/{0}?key={1}&file_name={2}""".format(generate_method, key, doc.file_name)
+        file_url = """/api/method/{0}?key={1}&file_name={2}""".format(
+            generate_method, key, urllib.parse.quote(doc.file_name)
+        )
 
         frappe.db.sql(
             """UPDATE `tabFile` SET file_url=%s, folder=%s,
