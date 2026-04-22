@@ -378,6 +378,13 @@ class CustomFile(File):
     """Extends Frappe's File doctype to support content retrieval for files stored in S3
     via the frappe_s3_attachment URL pattern (/api/method/frappe_s3_attachment.controller.generate_file?key=...)."""
 
+    def get_full_path(self):
+        # Frappe's is_safe_path only allows http/https, not /api/method/ paths.
+        # Return early so validate_file_on_disk() hits its URL_PREFIXES guard instead of throwing.
+        if self.file_url and s3_file_regex_match(self.file_url):
+            return self.file_url
+        return super().get_full_path()
+
     def get_content(self) -> bytes:
         if self.file_url and s3_file_regex_match(self.file_url):
             parsed = urllib.parse.urlparse(self.file_url)
