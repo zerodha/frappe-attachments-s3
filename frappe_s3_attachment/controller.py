@@ -5,6 +5,7 @@ import os
 import random
 import re
 import string
+from urllib.parse import quote
 
 import boto3
 
@@ -118,7 +119,7 @@ class S3Operations(object):
                         "ContentType": content_type,
                         "Metadata": {
                             "ContentType": content_type,
-                            "file_name": file_name
+                            "file_name": quote(file_name, safe="")
                         }
                     }
                 )
