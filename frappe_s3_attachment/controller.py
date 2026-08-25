@@ -196,6 +196,16 @@ def file_upload_to_s3(doc, method):
     if getattr(doc.flags, "skip_s3_upload", False):
         return
 
+    if doc.is_folder or not doc.file_url:
+        """
+        A Folder-type File record (e.g. the site's "Home" folder, created
+        on demand by frappe.core.doctype.file.utils.make_home_folder())
+        has no file_url - nothing to upload, and building file_path below
+        with path=None throws TypeError before the doctype/folder check
+        can even run.
+        """
+        return
+
     s3_upload = S3Operations()
     path = doc.file_url
     site_path = frappe.utils.get_site_path()
